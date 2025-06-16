@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -16,6 +15,7 @@ import { HeaderSection } from "@/components/HeaderSection";
 import { TabNavigation } from "@/components/TabNavigation";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
+import { FontSettings } from "@/components/FontControls";
 
 export interface Account {
   id: string;
@@ -63,6 +63,14 @@ const Index = () => {
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [colorTheme, setColorTheme] = useState('ocean');
+  
+  const [fontSettings, setFontSettings] = useState<FontSettings>({
+    size: 14,
+    family: 'Inter',
+    weight: 'normal',
+    color: 'white',
+    italic: false
+  });
 
   const { loadData, saveData } = useLocalStorage();
   const { 
@@ -86,6 +94,13 @@ const Index = () => {
       setPaymentLogs(savedData.paymentLogs || []);
       setUndoStack(savedData.undoStack || []);
       setColorTheme(savedData.colorTheme || 'ocean');
+      setFontSettings(savedData.fontSettings || {
+        size: 14,
+        family: 'Inter',
+        weight: 'normal',
+        color: 'white',
+        italic: false
+      });
     } else {
       // Initialize with sample data
       const sampleAccounts: Account[] = [
@@ -124,9 +139,10 @@ const Index = () => {
       paymentLogs,
       undoStack: undoStack.slice(-5),
       colorTheme,
+      fontSettings,
     };
     saveData(dataToSave);
-  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, colorTheme]);
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, colorTheme, fontSettings]);
 
   const onUndo = () => {
     const previousState = handleUndo({
@@ -196,6 +212,8 @@ const Index = () => {
           redoStack={redoStack}
           onUndo={onUndo}
           onRedo={onRedo}
+          fontSettings={fontSettings}
+          onFontChange={setFontSettings}
         />
 
         <QuickStatsSection 
@@ -203,6 +221,7 @@ const Index = () => {
           totalOutstanding={totalOutstanding}
           totalMinPayments={totalMinPayments}
           emergencyFund={emergencyFund}
+          fontSettings={fontSettings}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -214,7 +233,8 @@ const Index = () => {
               onBalanceChange={(newBalance) => {
                 handleSaveStateForUndo();
                 setBankBalance(newBalance);
-              }} 
+              }}
+              fontSettings={fontSettings}
             />
 
             <AccountsSection
