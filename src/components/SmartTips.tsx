@@ -33,8 +33,8 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         id: 'high-interest-warning',
         title: '🚨 High Interest Alert',
         content: `You have ${highInterestAccounts.length} account(s) with interest rates above 20%. Focus on paying these first to save maximum money.`,
-        type: 'warning',
-        priority: 'high'
+        type: 'warning' as const,
+        priority: 'high' as const
       });
     }
 
@@ -45,8 +45,8 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         id: 'debt-avalanche',
         title: '⚡ Debt Avalanche Strategy',
         content: `Pay minimums on all debts, then focus extra payments on "${sortedByInterest[0].name}" (${sortedByInterest[0].interestRate}% interest) to save the most money.`,
-        type: 'strategy',
-        priority: 'high'
+        type: 'strategy' as const,
+        priority: 'high' as const
       });
     }
 
@@ -56,8 +56,8 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         id: 'low-balance-warning',
         title: '💰 Low Balance Alert',
         content: 'Your bank balance is running low. Consider building an emergency fund of at least ₹25,000 before aggressive debt payments.',
-        type: 'warning',
-        priority: 'high'
+        type: 'warning' as const,
+        priority: 'high' as const
       });
     }
 
@@ -70,8 +70,8 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         id: 'debt-free-timeline',
         title: '🎯 Debt-Free Timeline',
         content: `At current minimum payments, you'll be debt-free in approximately ${monthsToFreedom} months. Increase payments by 20% to reduce this by ${Math.ceil(monthsToFreedom * 0.2)} months!`,
-        type: 'general',
-        priority: 'medium'
+        type: 'general' as const,
+        priority: 'medium' as const
       });
     }
 
@@ -84,8 +84,8 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
           id: `utilization-${card.id}`,
           title: '📊 Credit Utilization',
           content: `Your ${card.name} appears to have high utilization. Keep it below 30% to improve your credit score.`,
-          type: 'general',
-          priority: 'medium'
+          type: 'general' as const,
+          priority: 'medium' as const
         });
       }
     });
@@ -96,33 +96,33 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         id: 'extra-payment-opportunity',
         title: '💡 Extra Payment Opportunity',
         content: 'You have enough balance to make extra payments! Even ₹1000 extra per month can save thousands in interest.',
-        type: 'savings',
-        priority: 'medium'
+        type: 'savings' as const,
+        priority: 'medium' as const
       });
     }
 
     // Financial wisdom tips
-    const wisdomTips = [
+    const wisdomTips: Tip[] = [
       {
         id: 'compound-interest',
         title: '📈 Compound Interest Works Both Ways',
         content: 'Just as compound interest helps investments grow, it makes debt grow too. Every extra rupee paid today saves multiple rupees in future interest.',
-        type: 'general',
-        priority: 'low'
+        type: 'general' as const,
+        priority: 'low' as const
       },
       {
         id: 'emergency-fund',
         title: '🛡️ Emergency Fund Priority',
         content: 'Before aggressively paying debt, ensure you have at least 3-6 months of expenses saved. This prevents you from taking on more debt during emergencies.',
-        type: 'general',
-        priority: 'medium'
+        type: 'general' as const,
+        priority: 'medium' as const
       },
       {
         id: 'autopay-benefits',
         title: '🤖 Automate Your Success',
         content: 'Set up automatic payments for at least the minimum due. Late fees and missed payments can cost more than the interest itself.',
-        type: 'general',
-        priority: 'medium'
+        type: 'general' as const,
+        priority: 'medium' as const
       }
     ];
 

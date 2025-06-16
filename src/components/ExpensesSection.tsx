@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,7 +55,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
       id: Date.now().toString(),
       name: newExpense.name,
       amount: parseFloat(newExpense.amount),
-      type: newExpense.type,
+      type: newExpense.type, // This is now properly typed
       paymentMethod: newExpense.paymentMethod,
       isPaid: false,
       date: new Date().toISOString(),
@@ -67,7 +66,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
     setNewExpense({
       name: '',
       amount: '',
-      type: 'one-time',
+      type: 'one-time' as 'recurring' | 'one-time',
       paymentMethod: 'bank',
       category: 'utilities'
     });
@@ -115,7 +114,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const handleToggleRecurring = (expenseId: string) => {
     const updatedExpenses = expenses.map(exp => 
       exp.id === expenseId 
-        ? { ...exp, type: exp.type === 'recurring' ? 'one-time' : 'recurring' } 
+        ? { ...exp, type: exp.type === 'recurring' ? 'one-time' as const : 'recurring' as const } 
         : exp
     );
     onExpensesChange(updatedExpenses);
