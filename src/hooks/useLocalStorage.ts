@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
+import { FontSettings } from "@/components/FontControls";
 
 interface StorageData {
   bankBalance: number;
@@ -11,6 +12,7 @@ interface StorageData {
   paymentLogs: any[];
   undoStack: any[];
   colorTheme: string;
+  fontSettings: FontSettings;
 }
 
 export const useLocalStorage = () => {
