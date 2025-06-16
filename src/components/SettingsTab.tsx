@@ -4,279 +4,349 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Settings, Download, Upload, RotateCcw, AlertTriangle } from "lucide-react";
+import { Settings, Trash2, Download, Upload, Palette, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Account } from "@/pages/Index";
 
 interface SettingsTabProps {
   accounts: Account[];
+  colorTheme: string;
   onAccountsChange: (accounts: Account[]) => void;
+  onColorThemeChange: (theme: string) => void;
   onDataReset: () => void;
 }
 
 export const SettingsTab: React.FC<SettingsTabProps> = ({ 
   accounts, 
+  colorTheme,
   onAccountsChange, 
+  onColorThemeChange,
   onDataReset 
 }) => {
-  const [paymentStrategy, setPaymentStrategy] = useState<'avalanche' | 'snowball'>('avalanche');
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    outstanding: '',
+    minPayment: '',
+    interestRate: '',
+    dueDate: ''
+  });
 
-  const exportData = () => {
-    const data = localStorage.getItem('debtDashboardData');
-    if (!data) {
-      toast.error("No data to export");
-      return;
-    }
+  const colorThemes = [
+    { id: 'ocean', name: 'Ocean Blue', colors: 'from-slate-900 via-blue-900 to-indigo-900' },
+    { id: 'forest', name: 'Forest Green', colors: 'from-emerald-900 via-teal-900 to-green-900' },
+    { id: 'sunset', name: 'Sunset Orange', colors: 'from-orange-900 via-red-900 to-pink-900' },
+    { id: 'lavender', name: 'Lavender Purple', colors: 'from-purple-900 via-violet-800 to-indigo-900' },
+    { id: 'midnight', name: 'Midnight Black', colors: 'from-gray-900 via-slate-800 to-black' }
+  ];
 
-    const blob = new Blob([data], { type: 'application/json' });
+  const handleEditAccount = (account: Account) => {
+    setEditingAccount(account.id);
+    setEditForm({
+      name: account.name,
+      outstanding: account.outstanding.toString(),
+      minPayment: account.minPayment.toString(),
+      interestRate: account.interestRate.toString(),
+      dueDate: account.dueDate
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingAccount) return;
+
+    const updatedAccounts = accounts.map(acc => {
+      if (acc.id === editingAccount) {
+        return {
+          ...acc,
+          name: editForm.name,
+          outstanding: parseFloat(editForm.outstanding),
+          minPayment: parseFloat(editForm.minPayment),
+          interestRate: parseFloat(editForm.interestRate),
+          dueDate: editForm.dueDate
+        };
+      }
+      return acc;
+    });
+
+    onAccountsChange(updatedAccounts);
+    setEditingAccount(null);
+    toast.success("Account updated successfully!");
+  };
+
+  const handleDeleteAccount = (accountId: string) => {
+    onAccountsChange(accounts.filter(acc => acc.id !== accountId));
+    toast.success("Account deleted successfully");
+  };
+
+  const handleExportData = () => {
+    const data = {
+      accounts,
+      timestamp: new Date().toISOString(),
+      version: "1.0"
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `debt_dashboard_backup_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debt-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
     toast.success("Data exported successfully!");
   };
 
-  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const importedData = JSON.parse(e.target?.result as string);
-        localStorage.setItem('debtDashboardData', JSON.stringify(importedData));
-        window.location.reload(); // Reload to apply imported data
-        toast.success("Data imported successfully!");
+        const data = JSON.parse(e.target?.result as string);
+        if (data.accounts && Array.isArray(data.accounts)) {
+          onAccountsChange(data.accounts);
+          toast.success("Data imported successfully!");
+        } else {
+          toast.error("Invalid file format");
+        }
       } catch (error) {
-        toast.error("Invalid file format");
+        toast.error("Error reading file");
       }
     };
     reader.readAsText(file);
   };
 
-  const updateAccountInterestRate = (accountId: string, newRate: number) => {
-    const updatedAccounts = accounts.map(acc => 
-      acc.id === accountId ? { ...acc, interestRate: newRate } : acc
-    );
-    onAccountsChange(updatedAccounts);
-    toast.success("Interest rate updated");
-  };
-
-  const getPaymentStrategyDescription = () => {
-    if (paymentStrategy === 'avalanche') {
-      return "Pay minimums on all debts, focus extra payments on highest interest rate debt first. Saves the most money in interest.";
-    } else {
-      return "Pay minimums on all debts, focus extra payments on smallest balance debt first. Provides psychological wins and motivation.";
-    }
-  };
-
-  const getSuggestedPaymentOrder = () => {
-    if (paymentStrategy === 'avalanche') {
-      return [...accounts].sort((a, b) => b.interestRate - a.interestRate);
-    } else {
-      return [...accounts].sort((a, b) => a.outstanding - b.outstanding);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      {/* Payment Strategy */}
-      <Card className="bg-purple-800/30 border-purple-600/30 backdrop-blur-sm">
+      {/* Color Theme Settings */}
+      <Card className="bg-slate-800/50 border-slate-600/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-purple-100">Payment Strategy</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-slate-100">
+            <Palette className="h-6 w-6 text-blue-400" />
+            Appearance Settings
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-purple-200">Choose Your Strategy</Label>
-            <Select value={paymentStrategy} onValueChange={(value: any) => setPaymentStrategy(value)}>
-              <SelectTrigger className="bg-purple-800/50 border-purple-600 text-purple-100">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-purple-800 border-purple-600">
-                <SelectItem value="avalanche">Debt Avalanche (Interest First)</SelectItem>
-                <SelectItem value="snowball">Debt Snowball (Smallest First)</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-purple-300 text-sm mt-2">{getPaymentStrategyDescription()}</p>
-          </div>
-
-          {accounts.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-purple-100 mb-3">Suggested Payment Order:</h3>
-              <div className="space-y-2">
-                {getSuggestedPaymentOrder().map((account, index) => (
-                  <div key={account.id} className="flex items-center justify-between bg-purple-700/30 p-3 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Badge className="bg-purple-600 text-white">{index + 1}</Badge>
-                      <div>
-                        <p className="font-medium text-purple-100">{account.name}</p>
-                        <p className="text-purple-300 text-sm">
-                          {paymentStrategy === 'avalanche' 
-                            ? `${account.interestRate}% interest` 
-                            : `₹${account.outstanding.toLocaleString()} outstanding`
-                          }
-                        </p>
-                      </div>
-                    </div>
+            <Label className="text-slate-200 mb-3 block">Color Theme</Label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {colorThemes.map((theme) => (
+                <Button
+                  key={theme.id}
+                  variant={colorTheme === theme.id ? "default" : "outline"}
+                  className={`h-16 justify-start ${colorTheme === theme.id ? 'ring-2 ring-blue-500' : ''}`}
+                  onClick={() => {
+                    onColorThemeChange(theme.id);
+                    toast.success(`Theme changed to ${theme.name}`);
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${theme.colors}`}></div>
+                    <span className="text-sm font-medium">{theme.name}</span>
                   </div>
-                ))}
-              </div>
+                </Button>
+              ))}
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Interest Rate Management */}
-      <Card className="bg-indigo-800/30 border-indigo-600/30 backdrop-blur-sm">
+      {/* Account Management */}
+      <Card className="bg-slate-800/50 border-slate-600/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-indigo-100">Interest Rate Management</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-slate-100">
+            <Settings className="h-6 w-6 text-green-400" />
+            Account Management
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {accounts.map((account) => (
-            <div key={account.id} className="flex items-center justify-between bg-indigo-700/30 p-4 rounded-lg">
-              <div>
-                <h3 className="font-semibold text-indigo-100">{account.name}</h3>
-                <p className="text-indigo-300 text-sm">Current rate: {account.interestRate}%</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder={account.interestRate.toString()}
-                  className="w-24 bg-indigo-800/50 border-indigo-600 text-indigo-100"
-                  step="0.1"
-                  onChange={(e) => {
-                    const newRate = parseFloat(e.target.value);
-                    if (!isNaN(newRate) && newRate >= 0) {
-                      updateAccountInterestRate(account.id, newRate);
-                    }
-                  }}
-                />
-                <span className="text-indigo-200">%</span>
-              </div>
-            </div>
+            <Card key={account.id} className="bg-slate-700/50 border-slate-600/50">
+              <CardContent className="p-4">
+                {editingAccount === account.id ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-slate-200">Name</Label>
+                        <Input
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                          className="bg-slate-800 border-slate-600 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-200">Outstanding</Label>
+                        <Input
+                          type="number"
+                          value={editForm.outstanding}
+                          onChange={(e) => setEditForm({...editForm, outstanding: e.target.value})}
+                          className="bg-slate-800 border-slate-600 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-200">Min Payment/EMI</Label>
+                        <Input
+                          type="number"
+                          value={editForm.minPayment}
+                          onChange={(e) => setEditForm({...editForm, minPayment: e.target.value})}
+                          className="bg-slate-800 border-slate-600 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-200">Interest Rate (%)</Label>
+                        <Input
+                          type="number"
+                          value={editForm.interestRate}
+                          onChange={(e) => setEditForm({...editForm, interestRate: e.target.value})}
+                          className="bg-slate-800 border-slate-600 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-200">Due Date</Label>
+                        <Input
+                          type="date"
+                          value={editForm.dueDate}
+                          onChange={(e) => setEditForm({...editForm, dueDate: e.target.value})}
+                          className="bg-slate-800 border-slate-600 text-slate-100"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveEdit} className="bg-green-600 hover:bg-green-500">
+                        Save Changes
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setEditingAccount(null)}
+                        className="border-slate-600 text-slate-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-slate-100 flex items-center gap-2">
+                        {account.name}
+                        <Badge variant={account.type === 'credit-card' ? 'default' : 'secondary'}>
+                          {account.type === 'credit-card' ? 'Card' : 'Loan'}
+                        </Badge>
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2 text-sm">
+                        <div>
+                          <span className="text-slate-400">Outstanding:</span>
+                          <span className="text-slate-200 ml-2">₹{account.outstanding.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Min Payment:</span>
+                          <span className="text-slate-200 ml-2">₹{account.minPayment.toLocaleString()}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Interest:</span>
+                          <span className="text-slate-200 ml-2">{account.interestRate}%</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400">Due:</span>
+                          <span className="text-slate-200 ml-2">{new Date(account.dueDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditAccount(account)}
+                        className="border-slate-600 text-slate-300"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteAccount(account.id)}
+                        className="border-red-600 text-red-400 hover:bg-red-500/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ))}
+
           {accounts.length === 0 && (
-            <p className="text-indigo-300 text-center py-4">No accounts to manage</p>
+            <div className="text-center py-8">
+              <Settings className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-300">No accounts to manage</p>
+            </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* App Settings */}
-      <Card className="bg-cyan-800/30 border-cyan-600/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-cyan-100">App Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-cyan-200">Auto-save Changes</Label>
-              <p className="text-cyan-300 text-sm">Automatically save data to local storage</p>
-            </div>
-            <Switch 
-              checked={autoSaveEnabled} 
-              onCheckedChange={setAutoSaveEnabled}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-cyan-200">Notifications</Label>
-              <p className="text-cyan-300 text-sm">Show success and error messages</p>
-            </div>
-            <Switch 
-              checked={notificationsEnabled} 
-              onCheckedChange={setNotificationsEnabled}
-            />
-          </div>
         </CardContent>
       </Card>
 
       {/* Data Management */}
-      <Card className="bg-orange-800/30 border-orange-600/30 backdrop-blur-sm">
+      <Card className="bg-slate-800/50 border-slate-600/50 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-orange-100">Data Management</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-slate-100">
+            <RefreshCw className="h-6 w-6 text-purple-400" />
+            Data Management
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Button
-              onClick={exportData}
-              className="bg-green-600 hover:bg-green-500 text-white"
+              onClick={handleExportData}
+              className="bg-blue-600 hover:bg-blue-500 text-white"
             >
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
             
-            <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="bg-orange-800/50 border-orange-600 text-orange-200 hover:bg-orange-700/50"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import Data
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-orange-900 border-orange-600">
-                <DialogHeader>
-                  <DialogTitle className="text-orange-100">Import Data</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <p className="text-orange-200">
-                    Select a backup file to import. This will replace all current data.
-                  </p>
-                  <Input
-                    type="file"
-                    accept=".json"
-                    onChange={importData}
-                    className="bg-orange-800/50 border-orange-600 text-orange-100"
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
+            <div>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportData}
+                className="hidden"
+                id="import-file"
+              />
+              <Button
+                onClick={() => document.getElementById('import-file')?.click()}
+                className="bg-green-600 hover:bg-green-500 text-white w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import Data
+              </Button>
+            </div>
 
-            <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+            <Dialog>
               <DialogTrigger asChild>
-                <Button variant="destructive">
-                  <RotateCcw className="h-4 w-4 mr-2" />
+                <Button variant="destructive" className="bg-red-600 hover:bg-red-500">
+                  <Trash2 className="h-4 w-4 mr-2" />
                   Reset All Data
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-red-900 border-red-600">
+              <DialogContent className="bg-slate-900 border-slate-600">
                 <DialogHeader>
-                  <DialogTitle className="text-red-100 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
-                    Reset All Data
-                  </DialogTitle>
+                  <DialogTitle className="text-slate-100">Reset All Data</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <p className="text-red-200">
-                    This will permanently delete all your accounts, expenses, payment history, and settings. 
+                  <p className="text-slate-300">
+                    This will permanently delete all your accounts, expenses, and payment history. 
                     This action cannot be undone.
                   </p>
-                  <div className="flex gap-2 justify-end">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsResetDialogOpen(false)}
-                      className="bg-red-800/50 border-red-600 text-red-200"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => {
-                        onDataReset();
-                        setIsResetDialogOpen(false);
-                      }}
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={onDataReset}
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-500"
                     >
                       Yes, Reset Everything
                     </Button>
@@ -285,28 +355,14 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({
               </DialogContent>
             </Dialog>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Tips */}
-      <Card className="bg-blue-800/30 border-blue-600/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-blue-100">💡 Pro Tips</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="bg-blue-700/30 p-3 rounded-lg">
-            <p className="text-blue-200 text-sm">
-              <strong>Regular Backups:</strong> Export your data monthly to keep a backup of your financial progress.
-            </p>
-          </div>
-          <div className="bg-blue-700/30 p-3 rounded-lg">
-            <p className="text-blue-200 text-sm">
-              <strong>Strategy Switching:</strong> You can change between Avalanche and Snowball strategies anytime based on your motivation and financial situation.
-            </p>
-          </div>
-          <div className="bg-blue-700/30 p-3 rounded-lg">
-            <p className="text-blue-200 text-sm">
-              <strong>Interest Rate Updates:</strong> Keep your interest rates current for accurate payment recommendations and savings calculations.
+          <div className="bg-slate-700/30 p-4 rounded-lg">
+            <h4 className="text-slate-200 font-medium mb-2">Privacy & Security</h4>
+            <p className="text-slate-300 text-sm">
+              ✅ All data is stored locally on your device<br/>
+              ✅ No data is sent to external servers<br/>
+              ✅ Your financial information remains completely private<br/>
+              ✅ You can use this dashboard offline without internet
             </p>
           </div>
         </CardContent>

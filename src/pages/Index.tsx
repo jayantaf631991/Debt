@@ -21,7 +21,9 @@ import {
   Check,
   X,
   Undo,
-  Redo
+  Redo,
+  Target,
+  Shield
 } from "lucide-react";
 import { BankBalanceCard } from "@/components/BankBalanceCard";
 import { AccountsSection } from "@/components/AccountsSection";
@@ -30,6 +32,8 @@ import { ChartsTab } from "@/components/ChartsTab";
 import { HistoryTab } from "@/components/HistoryTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { SmartTips } from "@/components/SmartTips";
+import { EmergencyFundCard } from "@/components/EmergencyFundCard";
+import { ExpenseCategoriesTab } from "@/components/ExpenseCategoriesTab";
 
 export interface Account {
   id: string;
@@ -42,7 +46,7 @@ export interface Account {
   lastPayment?: {
     amount: number;
     date: string;
-    type: 'minimum' | 'full' | 'custom';
+    type: 'minimum' | 'full' | 'custom' | 'emi';
   };
 }
 
@@ -62,7 +66,7 @@ export interface PaymentLog {
   accountId: string;
   accountName: string;
   amount: number;
-  type: 'minimum' | 'full' | 'custom';
+  type: 'minimum' | 'full' | 'custom' | 'emi';
   date: string;
   balanceBefore: number;
   balanceAfter: number;
@@ -70,12 +74,15 @@ export interface PaymentLog {
 
 const Index = () => {
   const [bankBalance, setBankBalance] = useState(50000);
+  const [emergencyFund, setEmergencyFund] = useState(0);
+  const [emergencyGoal, setEmergencyGoal] = useState(150000);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [undoStack, setUndoStack] = useState<any[]>([]);
   const [redoStack, setRedoStack] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [colorTheme, setColorTheme] = useState('ocean');
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -83,10 +90,13 @@ const Index = () => {
     if (savedData) {
       const data = JSON.parse(savedData);
       setBankBalance(data.bankBalance || 50000);
+      setEmergencyFund(data.emergencyFund || 0);
+      setEmergencyGoal(data.emergencyGoal || 150000);
       setAccounts(data.accounts || []);
       setExpenses(data.expenses || []);
       setPaymentLogs(data.paymentLogs || []);
       setUndoStack(data.undoStack || []);
+      setColorTheme(data.colorTheme || 'ocean');
       toast.success("Data loaded successfully!");
     } else {
       // Initialize with sample data
@@ -119,17 +129,21 @@ const Index = () => {
   useEffect(() => {
     const dataToSave = {
       bankBalance,
+      emergencyFund,
+      emergencyGoal,
       accounts,
       expenses,
       paymentLogs,
-      undoStack: undoStack.slice(-5), // Keep only last 5 undo states
+      undoStack: undoStack.slice(-5),
+      colorTheme,
     };
     localStorage.setItem('debtDashboardData', JSON.stringify(dataToSave));
-  }, [bankBalance, accounts, expenses, paymentLogs, undoStack]);
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, colorTheme]);
 
   const saveStateForUndo = () => {
     const currentState = {
       bankBalance,
+      emergencyFund,
       accounts: [...accounts],
       expenses: [...expenses],
       paymentLogs: [...paymentLogs],
@@ -145,6 +159,7 @@ const Index = () => {
       const previousState = undoStack[undoStack.length - 1];
       const currentState = {
         bankBalance,
+        emergencyFund,
         accounts: [...accounts],
         expenses: [...expenses],
         paymentLogs: [...paymentLogs],
@@ -155,6 +170,7 @@ const Index = () => {
       setUndoStack(prev => prev.slice(0, -1));
       
       setBankBalance(previousState.bankBalance);
+      setEmergencyFund(previousState.emergencyFund);
       setAccounts(previousState.accounts);
       setExpenses(previousState.expenses);
       setPaymentLogs(previousState.paymentLogs);
@@ -168,6 +184,7 @@ const Index = () => {
       const nextState = redoStack[redoStack.length - 1];
       const currentState = {
         bankBalance,
+        emergencyFund,
         accounts: [...accounts],
         expenses: [...expenses],
         paymentLogs: [...paymentLogs],
@@ -178,6 +195,7 @@ const Index = () => {
       setRedoStack(prev => prev.slice(0, -1));
       
       setBankBalance(nextState.bankBalance);
+      setEmergencyFund(nextState.emergencyFund);
       setAccounts(nextState.accounts);
       setExpenses(nextState.expenses);
       setPaymentLogs(nextState.paymentLogs);
@@ -186,18 +204,29 @@ const Index = () => {
     }
   };
 
+  const getThemeClasses = () => {
+    const themes = {
+      ocean: 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900',
+      forest: 'bg-gradient-to-br from-emerald-900 via-teal-900 to-green-900',
+      sunset: 'bg-gradient-to-br from-orange-900 via-red-900 to-pink-900',
+      lavender: 'bg-gradient-to-br from-purple-900 via-violet-800 to-indigo-900',
+      midnight: 'bg-gradient-to-br from-gray-900 via-slate-800 to-black'
+    };
+    return themes[colorTheme as keyof typeof themes] || themes.ocean;
+  };
+
   const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
   const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900 p-4">
+    <div className={`min-h-screen ${getThemeClasses()} p-4`}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-purple-200 to-pink-200 bg-clip-text text-transparent">
-            💰 Debt Mastery Dashboard
+          <h1 className="text-4xl font-bold text-white mb-2 bg-gradient-to-r from-cyan-200 to-blue-200 bg-clip-text text-transparent">
+            💰 FinTech Debt Master Pro
           </h1>
-          <p className="text-purple-200">Take control of your financial future with intelligent debt management</p>
+          <p className="text-slate-200 text-lg font-medium">Intelligent Debt Management & Financial Freedom Platform</p>
           
           {/* Undo/Redo buttons */}
           <div className="flex justify-center gap-2 mt-4">
@@ -206,7 +235,7 @@ const Index = () => {
               size="sm"
               onClick={handleUndo}
               disabled={undoStack.length === 0}
-              className="bg-purple-800/50 border-purple-600 text-purple-200 hover:bg-purple-700/50"
+              className="bg-slate-800/80 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white"
             >
               <Undo className="h-4 w-4 mr-1" />
               Undo
@@ -216,7 +245,7 @@ const Index = () => {
               size="sm"
               onClick={handleRedo}
               disabled={redoStack.length === 0}
-              className="bg-purple-800/50 border-purple-600 text-purple-200 hover:bg-purple-700/50"
+              className="bg-slate-800/80 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white"
             >
               <Redo className="h-4 w-4 mr-1" />
               Redo
@@ -225,39 +254,51 @@ const Index = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-green-400/30 backdrop-blur-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <Card className="bg-gradient-to-r from-emerald-600/30 to-green-500/30 border-emerald-400/50 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-200 text-sm">Bank Balance</p>
-                  <p className="text-2xl font-bold text-green-100">₹{bankBalance.toLocaleString()}</p>
+                  <p className="text-emerald-100 text-sm font-medium">Bank Balance</p>
+                  <p className="text-2xl font-bold text-white">₹{bankBalance.toLocaleString()}</p>
                 </div>
-                <Banknote className="h-8 w-8 text-green-300" />
+                <Banknote className="h-8 w-8 text-emerald-200" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-r from-red-500/20 to-pink-500/20 border-red-400/30 backdrop-blur-sm">
+          <Card className="bg-gradient-to-r from-red-600/30 to-pink-500/30 border-red-400/50 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-red-200 text-sm">Total Outstanding</p>
-                  <p className="text-2xl font-bold text-red-100">₹{totalOutstanding.toLocaleString()}</p>
+                  <p className="text-red-100 text-sm font-medium">Total Outstanding</p>
+                  <p className="text-2xl font-bold text-white">₹{totalOutstanding.toLocaleString()}</p>
                 </div>
-                <CreditCard className="h-8 w-8 text-red-300" />
+                <CreditCard className="h-8 w-8 text-red-200" />
               </div>
             </CardContent>
           </Card>
           
-          <Card className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-400/30 backdrop-blur-sm">
+          <Card className="bg-gradient-to-r from-blue-600/30 to-cyan-500/30 border-blue-400/50 backdrop-blur-sm">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-200 text-sm">Min Payments Due</p>
-                  <p className="text-2xl font-bold text-blue-100">₹{totalMinPayments.toLocaleString()}</p>
+                  <p className="text-blue-100 text-sm font-medium">Min Payments Due</p>
+                  <p className="text-2xl font-bold text-white">₹{totalMinPayments.toLocaleString()}</p>
                 </div>
-                <Calendar className="h-8 w-8 text-blue-300" />
+                <Calendar className="h-8 w-8 text-blue-200" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-600/30 to-violet-500/30 border-purple-400/50 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">Emergency Fund</p>
+                  <p className="text-2xl font-bold text-white">₹{emergencyFund.toLocaleString()}</p>
+                </div>
+                <Shield className="h-8 w-8 text-purple-200" />
               </div>
             </CardContent>
           </Card>
@@ -265,20 +306,28 @@ const Index = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-purple-800/50 backdrop-blur-sm border-purple-600/30">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-purple-200">
+          <TabsList className="grid w-full grid-cols-6 bg-slate-800/60 backdrop-blur-sm border-slate-600/30">
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
               <TrendingUp className="h-4 w-4 mr-2" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="charts" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-purple-200">
+            <TabsTrigger value="charts" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
               <PieChart className="h-4 w-4 mr-2" />
-              Charts
+              Analytics
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-purple-200">
+            <TabsTrigger value="categories" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
+              <FileText className="h-4 w-4 mr-2" />
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="history" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
               <History className="h-4 w-4 mr-2" />
               History
             </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-purple-200">
+            <TabsTrigger value="emergency" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
+              <Target className="h-4 w-4 mr-2" />
+              Emergency
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-slate-600 data-[state=active]:text-white text-slate-200">
               <Settings className="h-4 w-4 mr-2" />
               Settings
             </TabsTrigger>
@@ -322,6 +371,38 @@ const Index = () => {
                 saveStateForUndo();
                 setBankBalance(prev => prev - amount);
               }}
+              onExpenseAddedToCC={(accountId, amount) => {
+                saveStateForUndo();
+                const updatedAccounts = accounts.map(acc => {
+                  if (acc.id === accountId && acc.type === 'credit-card') {
+                    return {
+                      ...acc,
+                      outstanding: acc.outstanding + amount,
+                      minPayment: Math.max(acc.minPayment, (acc.outstanding + amount) * 0.05)
+                    };
+                  }
+                  return acc;
+                });
+                setAccounts(updatedAccounts);
+              }}
+              onExpenseRemoved={(expense) => {
+                saveStateForUndo();
+                if (expense.paymentMethod === 'bank') {
+                  setBankBalance(prev => prev + expense.amount);
+                } else {
+                  const updatedAccounts = accounts.map(acc => {
+                    if (acc.name === expense.paymentMethod && acc.type === 'credit-card') {
+                      return {
+                        ...acc,
+                        outstanding: Math.max(0, acc.outstanding - expense.amount),
+                        minPayment: Math.max(acc.minPayment, (acc.outstanding - expense.amount) * 0.05)
+                      };
+                    }
+                    return acc;
+                  });
+                  setAccounts(updatedAccounts);
+                }
+              }}
             />
 
             {/* Smart Tips */}
@@ -332,16 +413,39 @@ const Index = () => {
             <ChartsTab accounts={accounts} expenses={expenses} paymentLogs={paymentLogs} />
           </TabsContent>
 
+          <TabsContent value="categories">
+            <ExpenseCategoriesTab expenses={expenses} />
+          </TabsContent>
+
           <TabsContent value="history">
             <HistoryTab paymentLogs={paymentLogs} expenses={expenses} />
+          </TabsContent>
+
+          <TabsContent value="emergency">
+            <EmergencyFundCard 
+              currentAmount={emergencyFund}
+              targetAmount={emergencyGoal}
+              bankBalance={bankBalance}
+              onSave={(amount) => {
+                saveStateForUndo();
+                setEmergencyFund(prev => prev + amount);
+                setBankBalance(prev => prev - amount);
+              }}
+              onGoalChange={(newGoal) => {
+                setEmergencyGoal(newGoal);
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="settings">
             <SettingsTab 
               accounts={accounts}
+              colorTheme={colorTheme}
               onAccountsChange={setAccounts}
+              onColorThemeChange={setColorTheme}
               onDataReset={() => {
                 setBankBalance(50000);
+                setEmergencyFund(0);
                 setAccounts([]);
                 setExpenses([]);
                 setPaymentLogs([]);
