@@ -31,8 +31,8 @@ export const ChartsTab: React.FC<ChartsTabProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-200 text-sm">Total Debt</p>
-                <p className="text-3xl font-bold text-lime-950">₹{totalDebt.toLocaleString()}</p>
+                <p className="text-red-950 font-bold text-xl">Total Debt</p>
+                <p className="font-bold text-xl text-[#690874]">₹{totalDebt.toLocaleString()}</p>
               </div>
               <PieChart className="h-8 w-8 text-blue-300" />
             </div>
@@ -43,8 +43,8 @@ export const ChartsTab: React.FC<ChartsTabProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-200 text-sm">Total Expenses</p>
-                <p className="text-3xl font-bold text-purple-100">₹{totalExpenses.toLocaleString()}</p>
+                <p className="text-red-950 font-bold text-xl">Total Expenses</p>
+                <p className="font-bold text-xl text-[#690874]">₹{totalExpenses.toLocaleString()}</p>
               </div>
               <BarChart3 className="h-8 w-8 text-purple-300" />
             </div>
@@ -55,8 +55,8 @@ export const ChartsTab: React.FC<ChartsTabProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-200 text-sm">Total Payments</p>
-                <p className="text-3xl font-bold text-green-100">₹{totalPayments.toLocaleString()}</p>
+                <p className="text-red-950 font-bold text-xl">Total Payments</p>
+                <p className="font-bold text-xl text-[#690874]">₹{totalPayments.toLocaleString()}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-300" />
             </div>
