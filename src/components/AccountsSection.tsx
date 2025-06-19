@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Plus, Trash2, Calendar, TrendingUp, AlertTriangle } from "lucide-react";
+import { CreditCard, Plus, Trash2, Calendar, TrendingUp, AlertTriangle, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Account, PaymentLog } from "@/pages/Index";
 
@@ -25,6 +26,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
 }) => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [customPayments, setCustomPayments] = useState<{ [key: string]: string }>({});
+  const [editingField, setEditingField] = useState<{ accountId: string; field: string } | null>(null);
+  const [editValues, setEditValues] = useState<{ [key: string]: string }>({});
   const [newAccount, setNewAccount] = useState({
     name: '',
     type: 'credit-card' as 'credit-card' | 'loan',
@@ -61,6 +64,34 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     });
     setIsAddDialogOpen(false);
     toast.success("Account added successfully!");
+  };
+
+  const handleFieldEdit = (accountId: string, field: string, value: string) => {
+    setEditingField({ accountId, field });
+    setEditValues({ ...editValues, [`${accountId}-${field}`]: value });
+  };
+
+  const handleFieldSave = (accountId: string, field: string) => {
+    const newValue = editValues[`${accountId}-${field}`];
+    if (!newValue) return;
+
+    const updatedAccounts = accounts.map(acc => {
+      if (acc.id === accountId) {
+        return {
+          ...acc,
+          [field]: field === 'name' ? newValue : parseFloat(newValue)
+        };
+      }
+      return acc;
+    });
+
+    onAccountsChange(updatedAccounts);
+    setEditingField(null);
+    toast.success("Field updated successfully!");
+  };
+
+  const handleFieldCancel = () => {
+    setEditingField(null);
   };
 
   const handlePayment = (accountId: string, amount: number, type: 'minimum' | 'full' | 'custom' | 'emi') => {
@@ -124,25 +155,86 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     return <Badge variant="secondary">{days} days</Badge>;
   };
 
-  const getSmartTip = (account: Account) => {
-    const extraPayment = Math.min(account.outstanding * 0.1, bankBalance * 0.2, 10000);
-    
-    if (account.type === 'credit-card') {
-      const newOutstanding = Math.max(0, account.outstanding - extraPayment);
-      const newMinPayment = Math.max(500, newOutstanding * 0.05);
-      const monthlyInterest = (account.interestRate / 100) / 12;
-      const interestSaved = (account.outstanding - newOutstanding) * monthlyInterest;
+  const getSmartTips = (account: Account) => {
+    const paymentOptions = [2000, 5000, 10000];
+    const tips = [];
+
+    for (const extraAmount of paymentOptions) {
+      if (extraAmount > bankBalance * 0.5) continue; // Don't suggest more than 50% of bank balance
+      if (extraAmount >= account.outstanding) continue; // Don't suggest more than outstanding
+
+      const currentOutstanding = account.outstanding;
+      const newOutstanding = Math.max(0, currentOutstanding - extraAmount);
       
-      return `💡 Pay ₹${extraPayment.toFixed(0)} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | New min: ₹${newMinPayment.toFixed(0)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`;
-    } else {
-      const newOutstanding = Math.max(0, account.outstanding - extraPayment);
+      // Calculate monthly interest rate
       const monthlyRate = (account.interestRate / 100) / 12;
-      const originalMonths = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
-      const newMonths = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
-      const monthsSaved = Math.max(0, originalMonths - newMonths);
       
-      return `💡 Pay ₹${extraPayment.toFixed(0)} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | Months saved: ${monthsSaved.toFixed(1)} | Interest saved: ₹${((account.outstanding - newOutstanding) * (account.interestRate / 100) / 12).toFixed(0)}/month`;
+      // Calculate current and new monthly interest charges
+      const currentMonthlyInterest = currentOutstanding * monthlyRate;
+      const newMonthlyInterest = newOutstanding * monthlyRate;
+      const interestSaved = currentMonthlyInterest - newMonthlyInterest;
+
+      if (account.type === 'credit-card') {
+        const newMinPayment = Math.max(500, newOutstanding * 0.05);
+        
+        if (interestSaved >= 10) { // Only show if meaningful savings
+          tips.push(`💰 Pay ₹${extraAmount.toLocaleString()} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | New min: ₹${newMinPayment.toFixed(0)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`);
+        }
+      } else {
+        // For loans, calculate time savings
+        const currentMonths = currentOutstanding > 0 ? Math.log(1 + (currentOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
+        const newMonths = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
+        const monthsSaved = Math.max(0, currentMonths - newMonths);
+        
+        if (interestSaved >= 10) { // Only show if meaningful savings
+          tips.push(`🏠 Pay ₹${extraAmount.toLocaleString()} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | Months saved: ${monthsSaved.toFixed(1)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`);
+        }
+      }
     }
+
+    return tips.length > 0 ? tips : [`💡 Consider paying more than minimum to save on interest charges (${account.interestRate}% annual rate)`];
+  };
+
+  const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false) => {
+    const isEditing = editingField?.accountId === account.id && editingField?.field === field;
+    
+    if (isEditing) {
+      return (
+        <div className="flex items-center gap-2">
+          <Input
+            type={isNumeric ? "number" : "text"}
+            value={editValues[`${account.id}-${field}`] || ''}
+            onChange={(e) => setEditValues({...editValues, [`${account.id}-${field}`]: e.target.value})}
+            className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            onClick={() => handleFieldSave(account.id, field)}
+            className="bg-green-600 hover:bg-green-500 text-white h-8 w-8 p-0"
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleFieldCancel}
+            className="bg-red-600 hover:bg-red-500 text-white h-8 w-8 p-0"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      );
+    }
+
+    return (
+      <div 
+        className="flex items-center gap-2 cursor-pointer hover:bg-purple-600/20 p-1 rounded group"
+        onClick={() => handleFieldEdit(account.id, field, displayValue)}
+      >
+        <span>{displayValue}</span>
+        <Edit2 className="h-3 w-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    );
   };
 
   return (
@@ -274,15 +366,21 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <p className="text-purple-300 text-sm">Outstanding</p>
-                  <p className="text-lg font-bold text-red-300">₹{account.outstanding.toLocaleString()}</p>
+                  <div className="text-lg font-bold text-red-300">
+                    {renderEditableField(account, 'outstanding', `₹${account.outstanding.toLocaleString()}`, true)}
+                  </div>
                 </div>
                 <div>
                   <p className="text-purple-300 text-sm">Min Payment</p>
-                  <p className="text-lg font-bold text-yellow-300">₹{account.minPayment.toLocaleString()}</p>
+                  <div className="text-lg font-bold text-yellow-300">
+                    {renderEditableField(account, 'minPayment', `₹${account.minPayment.toLocaleString()}`, true)}
+                  </div>
                 </div>
                 <div>
                   <p className="text-purple-300 text-sm">Interest Rate</p>
-                  <p className="text-lg font-bold text-orange-300">{account.interestRate}%</p>
+                  <div className="text-lg font-bold text-orange-300">
+                    {renderEditableField(account, 'interestRate', `${account.interestRate}%`, true)}
+                  </div>
                 </div>
                 <div>
                   <p className="text-purple-300 text-sm">Last Payment</p>
@@ -352,8 +450,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </div>
               </div>
 
-              <div className="bg-purple-900/50 p-3 rounded-lg">
-                <p className="text-purple-200 text-sm">{getSmartTip(account)}</p>
+              <div className="bg-purple-900/50 p-3 rounded-lg space-y-2">
+                {getSmartTips(account).map((tip, index) => (
+                  <p key={index} className="text-purple-200 text-sm">{tip}</p>
+                ))}
               </div>
             </CardContent>
           </Card>
