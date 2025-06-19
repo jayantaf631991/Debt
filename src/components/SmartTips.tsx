@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,10 +24,72 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
   const [tips, setTips] = useState<Tip[]>([]);
   const [dismissedTips, setDismissedTips] = useState<string[]>([]);
 
+  const calculatePaymentImpact = (account: Account, extraAmount: number) => {
+    if (account.type === 'credit-card') {
+      const currentOutstanding = account.outstanding;
+      const newOutstanding = Math.max(0, currentOutstanding - extraAmount);
+      const newMinPayment = Math.max(500, newOutstanding * 0.05); // Minimum 500 or 5%
+      const monthlyInterest = (account.interestRate / 100) / 12;
+      const currentInterest = currentOutstanding * monthlyInterest;
+      const newInterest = newOutstanding * monthlyInterest;
+      const interestSaved = currentInterest - newInterest;
+      
+      return {
+        newOutstanding: newOutstanding,
+        newMinPayment: newMinPayment,
+        interestSaved: interestSaved
+      };
+    } else {
+      // For loans, calculate EMI impact
+      const newOutstanding = Math.max(0, account.outstanding - extraAmount);
+      const monthlyRate = (account.interestRate / 100) / 12;
+      const originalMonths = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
+      const newMonths = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
+      const monthsSaved = Math.max(0, originalMonths - newMonths);
+      
+      return {
+        newOutstanding: newOutstanding,
+        newMinPayment: account.minPayment, // EMI remains same
+        monthsSaved: monthsSaved,
+        interestSaved: (account.outstanding - newOutstanding) * (account.interestRate / 100) / 12
+      };
+    }
+  };
+
   const generateTips = () => {
     const newTips: Tip[] = [];
     
-    // High interest debt warning
+    // Enhanced payment impact tips
+    accounts.forEach(account => {
+      const extraAmount = Math.min(account.outstanding * 0.1, bankBalance * 0.2, 10000);
+      if (extraAmount > 1000) {
+        const impact = calculatePaymentImpact(account, extraAmount);
+        
+        if (account.type === 'credit-card') {
+          newTips.push({
+            id: `payment-impact-${account.id}`,
+            title: `💳 ${account.name} Payment Impact`,
+            content: `Pay ₹${extraAmount.toFixed(0)} extra → New outstanding: ₹${impact.newOutstanding.toLocaleString()} | New min payment: ₹${impact.newMinPayment.toFixed(0)} | Interest saved: ₹${impact.interestSaved.toFixed(0)}/month`,
+            type: 'strategy' as const,
+            category: 'financial' as const,
+            priority: 'high' as const,
+            source: 'Payment Calculator'
+          });
+        } else {
+          newTips.push({
+            id: `payment-impact-${account.id}`,
+            title: `🏠 ${account.name} Extra Payment`,
+            content: `Pay ₹${extraAmount.toFixed(0)} extra → New outstanding: ₹${impact.newOutstanding.toLocaleString()} | Months saved: ${impact.monthsSaved?.toFixed(1) || 0} | Interest saved: ₹${impact.interestSaved.toFixed(0)}/month`,
+            type: 'strategy' as const,
+            category: 'financial' as const,
+            priority: 'high' as const,
+            source: 'Loan Calculator'
+          });
+        }
+      }
+    });
+
+    // ... keep existing code (other tip generation logic)
     const highInterestAccounts = accounts.filter(acc => acc.interestRate > 20);
     if (highInterestAccounts.length > 0) {
       newTips.push({
@@ -42,7 +103,6 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
       });
     }
 
-    // Debt avalanche strategy
     if (accounts.length > 1) {
       const sortedByInterest = [...accounts].sort((a, b) => b.interestRate - a.interestRate);
       newTips.push({
@@ -56,7 +116,18 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
       });
     }
 
-    // Psychological debt tips
+    if (bankBalance < 25000) {
+      newTips.push({
+        id: 'emergency-fund-priority',
+        title: '🛡️ Emergency Fund Priority',
+        content: 'Build ₹25,000 emergency fund before aggressive debt payments. Emergencies without savings create new debt, undoing your progress.',
+        type: 'warning' as const,
+        category: 'financial' as const,
+        priority: 'high' as const,
+        source: 'Financial Planning Standards'
+      });
+    }
+
     const psychologicalTips: Tip[] = [
       {
         id: 'debt-snowball-psychological',
@@ -180,28 +251,13 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
       }
     ];
 
-    // Low balance warning
-    if (bankBalance < 25000) {
-      newTips.push({
-        id: 'emergency-fund-priority',
-        title: '🛡️ Emergency Fund Priority',
-        content: 'Build ₹25,000 emergency fund before aggressive debt payments. Emergencies without savings create new debt, undoing your progress.',
-        type: 'warning' as const,
-        category: 'financial' as const,
-        priority: 'high' as const,
-        source: 'Financial Planning Standards'
-      });
-    }
-
     // Add random tips from each category
     const allTips = [...psychologicalTips, ...emotionalTips, ...advancedStrategies, ...behavioralNudges];
     const randomTips = allTips.sort(() => 0.5 - Math.random()).slice(0, 3);
     newTips.push(...randomTips);
 
-    // Filter out dismissed tips
     const filteredTips = newTips.filter(tip => !dismissedTips.includes(tip.id));
-    
-    setTips(filteredTips.slice(0, 6)); // Show max 6 tips
+    setTips(filteredTips.slice(0, 6));
   };
 
   useEffect(() => {
@@ -259,7 +315,7 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-cyan-100">
             <Lightbulb className="h-6 w-6 text-cyan-300" />
-            Advanced Financial Psychology Tips
+            Smart Payment Tips
           </CardTitle>
           <Button
             onClick={handleRefreshTips}
@@ -268,7 +324,7 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
             className="bg-cyan-800/50 border-cyan-600 text-cyan-200 hover:bg-cyan-700/50"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Tips
+            Refresh
           </Button>
         </div>
       </CardHeader>
@@ -306,7 +362,7 @@ export const SmartTips: React.FC<SmartTipsProps> = ({ accounts, bankBalance }) =
           <div className="text-center py-8">
             <Lightbulb className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
             <p className="text-cyan-200 mb-2">All tips reviewed!</p>
-            <p className="text-cyan-300 text-sm">Click refresh to get new psychological and financial insights</p>
+            <p className="text-cyan-300 text-sm">Click refresh to get new insights</p>
           </div>
         )}
       </CardContent>

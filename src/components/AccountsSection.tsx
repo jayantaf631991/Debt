@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -126,14 +125,23 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   };
 
   const getSmartTip = (account: Account) => {
-    const extraPayment = Math.min(account.outstanding * 0.1, bankBalance * 0.2);
-    const interestSaved = (extraPayment * account.interestRate) / 100 / 12;
+    const extraPayment = Math.min(account.outstanding * 0.1, bankBalance * 0.2, 10000);
     
     if (account.type === 'credit-card') {
-      return `💡 Pay ₹${extraPayment.toFixed(0)} extra to save ₹${interestSaved.toFixed(0)} in interest next month`;
+      const newOutstanding = Math.max(0, account.outstanding - extraPayment);
+      const newMinPayment = Math.max(500, newOutstanding * 0.05);
+      const monthlyInterest = (account.interestRate / 100) / 12;
+      const interestSaved = (account.outstanding - newOutstanding) * monthlyInterest;
+      
+      return `💡 Pay ₹${extraPayment.toFixed(0)} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | New min: ₹${newMinPayment.toFixed(0)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`;
     } else {
-      const monthsSaved = Math.floor((account.outstanding / account.minPayment) * 0.1);
-      return `💡 Pay ₹${extraPayment.toFixed(0)} extra EMI to clear loan ${monthsSaved} months earlier`;
+      const newOutstanding = Math.max(0, account.outstanding - extraPayment);
+      const monthlyRate = (account.interestRate / 100) / 12;
+      const originalMonths = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
+      const newMonths = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
+      const monthsSaved = Math.max(0, originalMonths - newMonths);
+      
+      return `💡 Pay ₹${extraPayment.toFixed(0)} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | Months saved: ${monthsSaved.toFixed(1)} | Interest saved: ₹${((account.outstanding - newOutstanding) * (account.interestRate / 100) / 12).toFixed(0)}/month`;
     }
   };
 
@@ -288,22 +296,36 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
               </div>
 
               <div className="flex flex-wrap gap-2 mb-3">
-                <Button
-                  onClick={() => handlePayment(account.id, account.minPayment, 'minimum')}
-                  disabled={bankBalance < account.minPayment}
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white"
-                  size="sm"
-                >
-                  Pay Min (₹{account.minPayment.toLocaleString()})
-                </Button>
-                <Button
-                  onClick={() => handlePayment(account.id, account.outstanding, 'full')}
-                  disabled={bankBalance < account.outstanding}
-                  className="bg-green-600 hover:bg-green-500 text-white"
-                  size="sm"
-                >
-                  Pay Full
-                </Button>
+                {account.type === 'credit-card' ? (
+                  <>
+                    <Button
+                      onClick={() => handlePayment(account.id, account.minPayment, 'minimum')}
+                      disabled={bankBalance < account.minPayment}
+                      className="bg-yellow-600 hover:bg-yellow-500 text-white"
+                      size="sm"
+                    >
+                      Pay Min (₹{account.minPayment.toLocaleString()})
+                    </Button>
+                    <Button
+                      onClick={() => handlePayment(account.id, account.outstanding, 'full')}
+                      disabled={bankBalance < account.outstanding}
+                      className="bg-green-600 hover:bg-green-500 text-white"
+                      size="sm"
+                    >
+                      Pay Full
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => handlePayment(account.id, account.minPayment, 'emi')}
+                    disabled={bankBalance < account.minPayment}
+                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                    size="sm"
+                  >
+                    Pay EMI (₹{account.minPayment.toLocaleString()})
+                  </Button>
+                )}
+                
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -322,7 +344,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                       }
                     }}
                     disabled={!customPayments[account.id] || parseFloat(customPayments[account.id]) <= 0}
-                    className="bg-blue-600 hover:bg-blue-500 text-white"
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white"
                     size="sm"
                   >
                     Pay Custom

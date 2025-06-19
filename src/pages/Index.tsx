@@ -13,6 +13,8 @@ import { ExpenseCategoriesTab } from "@/components/ExpenseCategoriesTab";
 import { QuickStatsSection } from "@/components/QuickStatsSection";
 import { HeaderSection } from "@/components/HeaderSection";
 import { TabNavigation } from "@/components/TabNavigation";
+import { JourneyTab } from "@/components/JourneyTab";
+import { DataManager } from "@/components/DataManager";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useUndoRedo } from "@/hooks/useUndoRedo";
 import { FontSettings } from "@/components/FontControls";
@@ -204,6 +206,79 @@ const Index = () => {
   const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
   const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
 
+  const handleExportData = () => {
+    const dataToExport = {
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      colorTheme,
+      fontSettings,
+      exportDate: new Date().toISOString(),
+      version: '1.0'
+    };
+
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `debt-dashboard-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Data exported successfully!");
+  };
+
+  const handleImportData = (importedData: any) => {
+    try {
+      setBankBalance(importedData.bankBalance || 50000);
+      setEmergencyFund(importedData.emergencyFund || 0);
+      setEmergencyGoal(importedData.emergencyGoal || 150000);
+      setAccounts(importedData.accounts || []);
+      setExpenses(importedData.expenses || []);
+      setPaymentLogs(importedData.paymentLogs || []);
+      setColorTheme(importedData.colorTheme || 'ocean');
+      setFontSettings(importedData.fontSettings || {
+        size: 14,
+        family: 'Inter',
+        weight: 'normal',
+        color: 'white',
+        italic: false
+      });
+      setUndoStack([]);
+      toast.success("Data imported successfully!");
+    } catch (error) {
+      toast.error("Error importing data");
+    }
+  };
+
+  const handleQuitApp = () => {
+    // Save all data one final time
+    const finalData = {
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      undoStack: undoStack.slice(-5),
+      colorTheme,
+      fontSettings,
+    };
+    saveData(finalData);
+    
+    toast.success("All data saved successfully! You can now close the browser safely.", {
+      duration: 3000,
+    });
+    
+    // Note: We cannot actually close the browser tab/window from JavaScript due to security restrictions
+    // The user will need to manually close the tab/window
+    setTimeout(() => {
+      alert("Data has been saved! You can now safely close this browser tab/window to quit the application.");
+    }, 1000);
+  };
+
   return (
     <div className={`min-h-screen ${getThemeClasses()} p-4`}>
       <div className="max-w-7xl mx-auto">
@@ -312,6 +387,14 @@ const Index = () => {
             <HistoryTab paymentLogs={paymentLogs} expenses={expenses} />
           </TabsContent>
 
+          <TabsContent value="journey">
+            <JourneyTab 
+              accounts={accounts}
+              expenses={expenses}
+              bankBalance={bankBalance}
+            />
+          </TabsContent>
+
           <TabsContent value="emergency">
             <EmergencyFundCard 
               currentAmount={emergencyFund}
@@ -325,6 +408,14 @@ const Index = () => {
               onGoalChange={(newGoal) => {
                 setEmergencyGoal(newGoal);
               }}
+            />
+          </TabsContent>
+
+          <TabsContent value="data">
+            <DataManager 
+              onExportData={handleExportData}
+              onImportData={handleImportData}
+              onQuitApp={handleQuitApp}
             />
           </TabsContent>
 
