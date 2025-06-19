@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Layout } from "@/components/Layout";
@@ -20,6 +19,7 @@ import {
   PiggyBank
 } from "lucide-react";
 import { toast } from "sonner";
+import { JourneyTab } from "@/components/JourneyTab";
 
 export interface Account {
   id: string;
@@ -380,7 +380,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <Tabs defaultValue="dashboard" className="w-full space-y-4">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-white/10 backdrop-blur-sm border border-white/20">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9 bg-white/10 backdrop-blur-sm border border-white/20">
           <TabsTrigger 
             value="dashboard" 
             className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70 hover:text-white/90"
@@ -411,6 +411,14 @@ const Index = () => {
           >
             <BookOpen className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Expenses</span>
+          </TabsTrigger>
+
+          <TabsTrigger 
+            value="journey" 
+            className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70 hover:text-white/90"
+          >
+            <BookOpen className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Journey</span>
           </TabsTrigger>
 
           <TabsTrigger 
@@ -490,11 +498,19 @@ const Index = () => {
           />
         </TabsContent>
 
+        <TabsContent value="journey" className="space-y-4">
+          <JourneyTab 
+            accounts={accounts}
+            expenses={expenses}
+            bankBalance={bankBalance}
+          />
+        </TabsContent>
+
         <TabsContent value="data" className="space-y-4">
           <DataManager 
-            onExportData={() => {}}
-            onImportData={() => {}}
-            onQuitApp={() => {}}
+            onExportData={handleExportData}
+            onImportData={handleImportData}
+            onQuitApp={handleQuitApp}
           />
         </TabsContent>
 
