@@ -1,10 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Layout } from "@/components/Layout";
-import { BankSection } from "@/components/BankSection";
-import { AccountsSection } from "@/components/AccountsSection";
-import { SpendingSection } from "@/components/SpendingSection";
-import { InsightsSection } from "@/components/InsightsSection";
-import { DataManager } from "@/components/DataManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   BarChart3, 
@@ -43,6 +37,17 @@ export interface PaymentLog {
   date: string;
   balanceBefore: number;
   balanceAfter: number;
+}
+
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  type: 'recurring' | 'one-time';
+  paymentMethod: string;
+  isPaid: boolean;
+  date: string;
+  category: string;
 }
 
 const Index = () => {
@@ -136,7 +141,7 @@ const Index = () => {
   };
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-4">
       <Tabs defaultValue="dashboard" className="w-full space-y-4">
         <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8 bg-white/10 backdrop-blur-sm border border-white/20">
           <TabsTrigger 
@@ -203,40 +208,30 @@ const Index = () => {
             <span className="hidden sm:inline">Settings</span>
           </TabsTrigger>
         </TabsList>
+        
         <TabsContent value="dashboard" className="space-y-4">
           <h2 className="text-2xl font-bold text-white">Dashboard</h2>
           <p className="text-gray-400">Welcome to your personal finance dashboard</p>
         </TabsContent>
 
         <TabsContent value="bank" className="space-y-4">
-          <BankSection 
-            bankBalance={bankBalance} 
-            onBankBalanceChange={handleBankBalanceChange} 
-          />
+          <h2 className="text-2xl font-bold text-white">Bank Balance</h2>
+          <p className="text-gray-400">Manage your bank balance here</p>
         </TabsContent>
         
         <TabsContent value="accounts" className="space-y-4">
-          <AccountsSection 
-            accounts={accounts} 
-            bankBalance={bankBalance}
-            onAccountsChange={handleAccountsChange}
-            onPaymentMade={handlePaymentMade}
-          />
+          <h2 className="text-2xl font-bold text-white">Accounts</h2>
+          <p className="text-gray-400">Manage your credit cards and loans</p>
         </TabsContent>
         
         <TabsContent value="spending" className="space-y-4">
-          <SpendingSection 
-            spendingCategories={spendingCategories}
-            onSpendingChange={handleSpendingChange}
-          />
+          <h2 className="text-2xl font-bold text-white">Spending</h2>
+          <p className="text-gray-400">Track your spending categories</p>
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-4">
-          <InsightsSection 
-            accounts={accounts} 
-            paymentLogs={paymentLogs} 
-            spendingCategories={spendingCategories} 
-          />
+          <h2 className="text-2xl font-bold text-white">Insights</h2>
+          <p className="text-gray-400">View your financial insights and analytics</p>
         </TabsContent>
 
         <TabsContent value="data" className="space-y-4">
@@ -257,7 +252,7 @@ const Index = () => {
           <p className="text-gray-400">Customize your dashboard experience.</p>
         </TabsContent>
       </Tabs>
-    </Layout>
+    </div>
   );
 };
 
