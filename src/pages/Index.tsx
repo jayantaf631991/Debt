@@ -7,6 +7,7 @@ import { AccountsSection } from "@/components/AccountsSection";
 import { SpendingSection } from "@/components/SpendingSection";
 import { InsightsSection } from "@/components/InsightsSection";
 import { DataManager } from "@/components/DataManager";
+import { ExpensesSection } from "@/components/ExpensesSection";
 import { 
   BarChart3, 
   History, 
@@ -57,15 +58,211 @@ export interface Expense {
   category: string;
 }
 
+// Dummy data for testing
+const dummyAccounts: Account[] = [
+  {
+    id: '1',
+    name: 'HDFC Credit Card',
+    type: 'credit-card',
+    outstanding: 45000,
+    minPayment: 2250,
+    interestRate: 42,
+    dueDate: '2025-01-15',
+    lastPayment: {
+      amount: 2250,
+      date: '2024-12-15T00:00:00Z',
+      type: 'minimum'
+    }
+  },
+  {
+    id: '2',
+    name: 'SBI Personal Loan',
+    type: 'loan',
+    outstanding: 150000,
+    minPayment: 8500,
+    interestRate: 12,
+    dueDate: '2025-01-05',
+    lastPayment: {
+      amount: 8500,
+      date: '2024-12-05T00:00:00Z',
+      type: 'emi'
+    }
+  },
+  {
+    id: '3',
+    name: 'ICICI Credit Card',
+    type: 'credit-card',
+    outstanding: 25000,
+    minPayment: 1250,
+    interestRate: 36,
+    dueDate: '2025-01-20',
+  },
+  {
+    id: '4',
+    name: 'Axis Bank Car Loan',
+    type: 'loan',
+    outstanding: 280000,
+    minPayment: 12000,
+    interestRate: 9.5,
+    dueDate: '2025-01-10',
+    lastPayment: {
+      amount: 12000,
+      date: '2024-12-10T00:00:00Z',
+      type: 'emi'
+    }
+  }
+];
+
+const dummyPaymentLogs: PaymentLog[] = [
+  {
+    id: 'p1',
+    accountId: '1',
+    accountName: 'HDFC Credit Card',
+    amount: 2250,
+    type: 'minimum',
+    date: '2024-12-15T00:00:00Z',
+    balanceBefore: 102250,
+    balanceAfter: 100000
+  },
+  {
+    id: 'p2',
+    accountId: '2',
+    accountName: 'SBI Personal Loan',
+    amount: 8500,
+    type: 'emi',
+    date: '2024-12-05T00:00:00Z',
+    balanceBefore: 108500,
+    balanceAfter: 100000
+  },
+  {
+    id: 'p3',
+    accountId: '4',
+    accountName: 'Axis Bank Car Loan',
+    amount: 12000,
+    type: 'emi',
+    date: '2024-12-10T00:00:00Z',
+    balanceBefore: 112000,
+    balanceAfter: 100000
+  },
+  {
+    id: 'p4',
+    accountId: '1',
+    accountName: 'HDFC Credit Card',
+    amount: 10000,
+    type: 'custom',
+    date: '2024-11-20T00:00:00Z',
+    balanceBefore: 120000,
+    balanceAfter: 110000
+  },
+  {
+    id: 'p5',
+    accountId: '3',
+    accountName: 'ICICI Credit Card',
+    amount: 15000,
+    type: 'full',
+    date: '2024-11-25T00:00:00Z',
+    balanceBefore: 125000,
+    balanceAfter: 110000
+  }
+];
+
+const dummyExpenses: Expense[] = [
+  {
+    id: 'e1',
+    name: 'Electricity Bill',
+    amount: 3500,
+    type: 'recurring',
+    paymentMethod: 'bank',
+    isPaid: true,
+    date: '2024-12-01T00:00:00Z',
+    category: 'utilities'
+  },
+  {
+    id: 'e2',
+    name: 'Grocery Shopping',
+    amount: 8000,
+    type: 'recurring',
+    paymentMethod: 'HDFC Credit Card',
+    isPaid: true,
+    date: '2024-12-15T00:00:00Z',
+    category: 'groceries'
+  },
+  {
+    id: 'e3',
+    name: 'Mobile Recharge',
+    amount: 599,
+    type: 'recurring',
+    paymentMethod: 'bank',
+    isPaid: true,
+    date: '2024-12-10T00:00:00Z',
+    category: 'utilities'
+  },
+  {
+    id: 'e4',
+    name: 'Movie Tickets',
+    amount: 1200,
+    type: 'one-time',
+    paymentMethod: 'ICICI Credit Card',
+    isPaid: true,
+    date: '2024-12-18T00:00:00Z',
+    category: 'entertainment'
+  },
+  {
+    id: 'e5',
+    name: 'Internet Bill',
+    amount: 1500,
+    type: 'recurring',
+    paymentMethod: 'bank',
+    isPaid: false,
+    date: '2024-12-20T00:00:00Z',
+    category: 'utilities'
+  },
+  {
+    id: 'e6',
+    name: 'Medical Checkup',
+    amount: 2500,
+    type: 'one-time',
+    paymentMethod: 'bank',
+    isPaid: false,
+    date: '2024-12-22T00:00:00Z',
+    category: 'healthcare'
+  },
+  {
+    id: 'e7',
+    name: 'Uber Rides',
+    amount: 800,
+    type: 'one-time',
+    paymentMethod: 'HDFC Credit Card',
+    isPaid: true,
+    date: '2024-12-12T00:00:00Z',
+    category: 'transport'
+  },
+  {
+    id: 'e8',
+    name: 'Online Course',
+    amount: 4500,
+    type: 'one-time',
+    paymentMethod: 'bank',
+    isPaid: false,
+    date: '2024-12-25T00:00:00Z',
+    category: 'education'
+  }
+];
+
 const Index = () => {
   const [bankBalance, setBankBalance] = useState(100000);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>(dummyAccounts);
+  const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>(dummyPaymentLogs);
+  const [expenses, setExpenses] = useState<Expense[]>(dummyExpenses);
   const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({
-    "Food": 5000,
+    "Food": 8000,
     "Travel": 12000,
-    "Shopping": 8000,
-    "Entertainment": 4000
+    "Shopping": 6500,
+    "Entertainment": 4500,
+    "Utilities": 5500,
+    "Healthcare": 3000,
+    "Education": 4500,
+    "Transport": 2500
   });
 
   useEffect(() => {
@@ -97,9 +294,42 @@ const Index = () => {
     setAccounts(newAccounts);
   };
 
+  const handleExpensesChange = (newExpenses: Expense[]) => {
+    setExpenses(newExpenses);
+  };
+
   const handlePaymentMade = (payment: PaymentLog) => {
     setPaymentLogs([...paymentLogs, payment]);
     setBankBalance(payment.balanceAfter);
+  };
+
+  const handleExpensePaid = (amount: number) => {
+    setBankBalance(prev => prev - amount);
+  };
+
+  const handleExpenseAddedToCC = (accountId: string, amount: number) => {
+    const updatedAccounts = accounts.map(acc => 
+      acc.id === accountId 
+        ? { ...acc, outstanding: acc.outstanding + amount }
+        : acc
+    );
+    setAccounts(updatedAccounts);
+  };
+
+  const handleExpenseRemoved = (expense: Expense) => {
+    if (expense.paymentMethod === 'bank' && expense.isPaid) {
+      setBankBalance(prev => prev + expense.amount);
+    } else if (expense.paymentMethod !== 'bank' && expense.isPaid) {
+      const account = accounts.find(acc => acc.name === expense.paymentMethod);
+      if (account?.type === 'credit-card') {
+        const updatedAccounts = accounts.map(acc => 
+          acc.id === account.id 
+            ? { ...acc, outstanding: Math.max(0, acc.outstanding - expense.amount) }
+            : acc
+        );
+        setAccounts(updatedAccounts);
+      }
+    }
   };
 
   const handleSpendingChange = (category: string, amount: number) => {
@@ -176,11 +406,11 @@ const Index = () => {
           </TabsTrigger>
           
           <TabsTrigger 
-            value="spending" 
+            value="expenses" 
             className="data-[state=active]:bg-white/20 data-[state=active]:text-white text-white/70 hover:text-white/90"
           >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Spending</span>
+            <BookOpen className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Expenses</span>
           </TabsTrigger>
 
           <TabsTrigger 
@@ -217,35 +447,54 @@ const Index = () => {
         </TabsList>
         
         <TabsContent value="dashboard" className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Dashboard</h2>
-          <p className="text-gray-400">Welcome to your personal finance dashboard</p>
+          <InsightsSection 
+            accounts={accounts}
+            paymentLogs={paymentLogs}
+            spendingCategories={spendingCategories}
+          />
         </TabsContent>
 
         <TabsContent value="bank" className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Bank Balance</h2>
-          <p className="text-gray-400">Manage your bank balance here</p>
+          <BankSection 
+            bankBalance={bankBalance}
+            onBankBalanceChange={handleBankBalanceChange}
+          />
         </TabsContent>
         
         <TabsContent value="accounts" className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Accounts</h2>
-          <p className="text-gray-400">Manage your credit cards and loans</p>
+          <AccountsSection 
+            accounts={accounts}
+            bankBalance={bankBalance}
+            onAccountsChange={handleAccountsChange}
+            onPaymentMade={handlePaymentMade}
+          />
         </TabsContent>
         
-        <TabsContent value="spending" className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Spending</h2>
-          <p className="text-gray-400">Track your spending categories</p>
+        <TabsContent value="expenses" className="space-y-4">
+          <ExpensesSection 
+            expenses={expenses}
+            bankBalance={bankBalance}
+            accounts={accounts}
+            onExpensesChange={handleExpensesChange}
+            onExpensePaid={handleExpensePaid}
+            onExpenseAddedToCC={handleExpenseAddedToCC}
+            onExpenseRemoved={handleExpenseRemoved}
+          />
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Insights</h2>
-          <p className="text-gray-400">View your financial insights and analytics</p>
+          <InsightsSection 
+            accounts={accounts}
+            paymentLogs={paymentLogs}
+            spendingCategories={spendingCategories}
+          />
         </TabsContent>
 
         <TabsContent value="data" className="space-y-4">
           <DataManager 
-            onExportData={handleExportData}
-            onImportData={handleImportData}
-            onQuitApp={handleQuitApp}
+            onExportData={() => {}}
+            onImportData={() => {}}
+            onQuitApp={() => {}}
           />
         </TabsContent>
 
