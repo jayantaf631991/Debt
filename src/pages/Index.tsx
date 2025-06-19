@@ -1,5 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Layout } from "@/components/Layout";
+import { BankSection } from "@/components/BankSection";
+import { AccountsSection } from "@/components/AccountsSection";
+import { SpendingSection } from "@/components/SpendingSection";
+import { InsightsSection } from "@/components/InsightsSection";
+import { DataManager } from "@/components/DataManager";
 import { 
   BarChart3, 
   History, 

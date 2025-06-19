@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, AlertCircle, DollarSign } from "lucide-react";
+import { TrendingUp, AlertCircle, DollarSign, BarChart3 } from "lucide-react";
 import { Account, PaymentLog } from "@/pages/Index";
 
 interface InsightsSectionProps {

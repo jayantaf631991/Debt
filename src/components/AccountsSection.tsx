@@ -63,7 +63,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     toast.success("Account added successfully!");
   };
 
-  const handlePayment = (accountId: string, amount: number, type: 'minimum' | 'full' | 'custom') => {
+  const handlePayment = (accountId: string, amount: number, type: 'minimum' | 'full' | 'custom' | 'emi') => {
     if (amount > bankBalance) {
       toast.error("Insufficient bank balance!");
       return;
