@@ -20,6 +20,11 @@ export interface Account {
   minPayment: number;
   interestRate: number;
   dueDate: string;
+  lastPayment?: {
+    amount: number;
+    date: string;
+    type: 'minimum' | 'full' | 'custom' | 'emi';
+  };
 }
 
 export interface PaymentLog {
@@ -27,7 +32,7 @@ export interface PaymentLog {
   accountId: string;
   accountName: string;
   amount: number;
-  type: 'minimum' | 'full' | 'custom';
+  type: 'minimum' | 'full' | 'custom' | 'emi';
   date: string;
   balanceBefore: number;
   balanceAfter: number;
@@ -37,6 +42,7 @@ export interface Expense {
   id: string;
   name: string;
   amount: number;
+  type: 'recurring' | 'one-time';
   paymentMethod: string;
   isPaid: boolean;
   date: string;

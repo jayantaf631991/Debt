@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,56 +140,56 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
   const totalPendingExpenses = expenses.filter(exp => !exp.isPaid).reduce((sum, exp) => sum + exp.amount, 0);
 
   return (
-    <Card className="bg-slate-800/40 border-slate-600/40 backdrop-blur-sm">
+    <Card className="bg-white border-gray-200">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-slate-100">
-            <FileText className="h-6 w-6 text-blue-400" />
+          <CardTitle className="flex items-center gap-2 text-gray-800">
+            <FileText className="h-6 w-6 text-green-600" />
             Expenses Management ({expenses.length})
           </CardTitle>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-500 text-white">
+              <Button className="bg-green-600 hover:bg-green-700 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Expense
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-slate-900 border-slate-600">
+            <DialogContent className="bg-white border-gray-200">
               <DialogHeader>
-                <DialogTitle className="text-slate-100">Add New Expense</DialogTitle>
+                <DialogTitle className="text-gray-800">Add New Expense</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label className="text-slate-200">Expense Name</Label>
+                  <Label className="text-gray-700">Expense Name</Label>
                   <Input
                     value={newExpense.name}
                     onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
-                    className="bg-slate-800/50 border-slate-600 text-slate-100"
+                    className="bg-white border-gray-300 text-gray-800"
                     placeholder="e.g., Electricity Bill"
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-200">Amount</Label>
+                  <Label className="text-gray-700">Amount</Label>
                   <Input
                     type="number"
                     value={newExpense.amount}
                     onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                    className="bg-slate-800/50 border-slate-600 text-slate-100"
+                    className="bg-white border-gray-300 text-gray-800"
                     placeholder="2500"
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-200">Category</Label>
+                  <Label className="text-gray-700">Category</Label>
                   <Select 
                     value={newExpense.category} 
                     onValueChange={(value) => setNewExpense({...newExpense, category: value})}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-slate-100">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-800">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
+                    <SelectContent className="bg-white border-gray-200">
                       {categories.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-slate-100">
+                        <SelectItem key={cat} value={cat} className="text-gray-800">
                           {cat.charAt(0).toUpperCase() + cat.slice(1)}
                         </SelectItem>
                       ))}
@@ -198,43 +197,38 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-200">Type</Label>
+                  <Label className="text-gray-700">Type</Label>
                   <Select 
                     value={newExpense.type} 
                     onValueChange={(value: 'recurring' | 'one-time') => setNewExpense({...newExpense, type: value})}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-slate-100">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-800">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="one-time" className="text-slate-100">One-time</SelectItem>
-                      <SelectItem value="recurring" className="text-slate-100">Recurring</SelectItem>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="one-time" className="text-gray-800">One-time</SelectItem>
+                      <SelectItem value="recurring" className="text-gray-800">Recurring</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-200">Payment Method</Label>
+                  <Label className="text-gray-700">Payment Method</Label>
                   <Select 
                     value={newExpense.paymentMethod} 
                     onValueChange={(value) => setNewExpense({...newExpense, paymentMethod: value})}
                   >
-                    <SelectTrigger className="bg-slate-800/50 border-slate-600 text-slate-100">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-800">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="bank" className="text-slate-100">Bank Account</SelectItem>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="bank" className="text-gray-800">Bank Account</SelectItem>
                       {accounts.map(acc => (
-                        <SelectItem key={acc.id} value={acc.name} className="text-slate-100">{acc.name}</SelectItem>
+                        <SelectItem key={acc.id} value={acc.name} className="text-gray-800">{acc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="bg-slate-800/30 p-3 rounded-lg">
-                  <p className="text-slate-300 text-sm">
-                    💡 <strong>Tip:</strong> If you select a credit card, the expense will be added to that card's outstanding balance and marked as paid automatically.
-                  </p>
-                </div>
-                <Button onClick={handleAddExpense} className="w-full bg-blue-600 hover:bg-blue-500">
+                <Button onClick={handleAddExpense} className="w-full bg-green-600 hover:bg-green-700">
                   Add Expense
                 </Button>
               </div>
@@ -242,33 +236,33 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
           </Dialog>
         </div>
         <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="bg-green-500/20 p-3 rounded-lg border border-green-500/30">
-            <p className="text-green-200 text-sm">Paid Expenses</p>
-            <p className="text-xl font-bold text-green-100">₹{totalPaidExpenses.toLocaleString()}</p>
+          <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+            <p className="text-green-700 text-sm">Paid Expenses</p>
+            <p className="text-xl font-bold text-green-800">₹{totalPaidExpenses.toLocaleString()}</p>
           </div>
-          <div className="bg-red-500/20 p-3 rounded-lg border border-red-500/30">
-            <p className="text-red-200 text-sm">Pending Expenses</p>
-            <p className="text-xl font-bold text-red-100">₹{totalPendingExpenses.toLocaleString()}</p>
+          <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+            <p className="text-red-700 text-sm">Pending Expenses</p>
+            <p className="text-xl font-bold text-red-800">₹{totalPendingExpenses.toLocaleString()}</p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {expenses.map((expense) => (
-          <Card key={expense.id} className="bg-slate-700/40 border-slate-500/40">
+          <Card key={expense.id} className="bg-gray-50 border-gray-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h3 className="font-semibold text-slate-100">{expense.name}</h3>
+                    <h3 className="font-semibold text-gray-800">{expense.name}</h3>
                     <Badge variant={expense.type === 'recurring' ? 'default' : 'secondary'}>
                       {expense.type}
                     </Badge>
-                    <Badge variant="outline" className="text-slate-300 border-slate-400">
+                    <Badge variant="outline" className="text-gray-700 border-gray-400">
                       {expense.category}
                     </Badge>
                     {expense.isPaid && <Badge className="bg-green-500">Paid</Badge>}
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-slate-200">
+                  <div className="flex items-center gap-4 text-sm text-gray-700">
                     <span className="font-medium">₹{expense.amount.toLocaleString()}</span>
                     <span>via {expense.paymentMethod}</span>
                     <span>{new Date(expense.date).toLocaleDateString()}</span>
@@ -278,7 +272,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                   {!expense.isPaid && expense.paymentMethod === 'bank' && (
                     <Button
                       onClick={() => handlePayExpense(expense.id)}
-                      className="bg-green-600 hover:bg-green-500 text-white"
+                      className="bg-green-600 hover:bg-green-700 text-white"
                       size="sm"
                     >
                       Mark Paid
@@ -288,7 +282,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleToggleRecurring(expense.id)}
-                    className="text-slate-300 hover:text-slate-200"
+                    className="text-gray-600 hover:text-gray-700"
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -296,7 +290,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeleteExpense(expense.id)}
-                    className="text-red-400 hover:text-red-300"
+                    className="text-red-600 hover:text-red-700"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -308,9 +302,9 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
 
         {expenses.length === 0 && (
           <div className="text-center py-8">
-            <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-200 mb-4">No expenses added yet</p>
-            <p className="text-slate-300 text-sm">Add your bills and expenses to track spending</p>
+            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">No expenses added yet</p>
+            <p className="text-gray-500 text-sm">Add your bills and expenses to track spending</p>
           </div>
         )}
       </CardContent>
