@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankSection } from "@/components/BankSection";
@@ -76,6 +75,7 @@ const dummyExpenses: Expense[] = [
     id: 'e1',
     name: 'Electricity Bill',
     amount: 2000,
+    type: 'recurring',
     paymentMethod: 'bank',
     isPaid: true,
     date: '2024-12-01T00:00:00Z',
@@ -85,6 +85,7 @@ const dummyExpenses: Expense[] = [
     id: 'e2',
     name: 'Groceries',
     amount: 5000,
+    type: 'one-time',
     paymentMethod: 'Credit Card',
     isPaid: true,
     date: '2024-12-15T00:00:00Z',
