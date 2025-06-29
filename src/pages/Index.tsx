@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BankSection } from "@/components/BankSection";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo } from "lucide-react";
+import { HeaderSection } from "@/components/HeaderSection";
+import { QuickStatsSection } from "@/components/QuickStatsSection";
 import { AccountsSection } from "@/components/AccountsSection";
 import { ExpensesSection } from "@/components/ExpensesSection";
-import { StoragePathDisplay } from "@/components/StoragePathDisplay";
-import { AnalyticsTab } from "@/components/AnalyticsTab";
-import { ImportExportTab } from "@/components/ImportExportTab";
-import { IntegrationSettings } from "@/components/IntegrationSettings";
-import { DebtBurndownTab } from "@/components/DebtBurndownTab";
 import { WealthCreationTab } from "@/components/WealthCreationTab";
-import { 
-  Home,
-  PiggyBank,
-  CreditCard,
-  Receipt,
-  BarChart3,
-  History,
-  TrendingUp,
-  Upload,
-  Settings,
-  Calculator,
-  Coins
-} from "lucide-react";
+import { InsightsSection } from "@/components/InsightsSection";
+import { SmartTips } from "@/components/SmartTips";
+import { SettingsSection } from "@/components/SettingsSection";
+import { FontControls, FontSettings } from "@/components/FontControls";
+import { ColorSchemeToggle } from "@/components/ThemeToggle";
+import { Layout } from "@/components/Layout";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 export interface Account {
   id: string;
@@ -38,344 +34,259 @@ export interface Account {
   };
 }
 
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  isPaid: boolean;
+  dueDate: string;
+}
+
 export interface PaymentLog {
   id: string;
   accountId: string;
   accountName: string;
   amount: number;
-  type: 'minimum' | 'full' | 'custom' | 'emi';
+  type: string;
   date: string;
   balanceBefore: number;
   balanceAfter: number;
 }
 
-export interface Expense {
-  id: string;
-  name: string;
-  amount: number;
-  type: 'recurring' | 'one-time';
-  paymentMethod: string;
-  isPaid: boolean;
-  date: string;
-  category: string;
-}
-
-// Updated dummy data based on the screenshot
-const dummyAccounts: Account[] = [
-  {
-    id: '1',
-    name: 'Axis Bank-Citi',
-    type: 'credit-card',
-    outstanding: 696000,
-    minPayment: 14010,
-    interestRate: 3.75,
-    dueDate: '2025-01-10'
-  },
-  {
-    id: '2', 
-    name: 'SBI_17',
-    type: 'credit-card',
-    outstanding: 56000,
-    minPayment: 1219,
-    interestRate: 3.89,
-    dueDate: '2025-01-13'
-  },
-  {
-    id: '3',
-    name: 'SBI_35',
-    type: 'credit-card', 
-    outstanding: 55000,
-    minPayment: 1240,
-    interestRate: 3.96,
-    dueDate: '2025-01-13'
-  },
-  {
-    id: '4',
-    name: 'ICICI',
-    type: 'credit-card',
-    outstanding: 69000,
-    minPayment: 1750,
-    interestRate: 3.32,
-    dueDate: '2025-01-17'
-  },
-  {
-    id: '5',
-    name: 'One Card',
-    type: 'credit-card',
-    outstanding: 2255546,
-    minPayment: 19253,
-    interestRate: 3.75,
-    dueDate: '2025-01-01'
-  },
-  {
-    id: '6',
-    name: 'Axis PL',
-    type: 'loan',
-    outstanding: 872970,
-    minPayment: 32969,
-    interestRate: 11.5,
-    dueDate: '2025-01-05'
-  },
-  {
-    id: '7',
-    name: 'Aditya Birla',
-    type: 'loan',
-    outstanding: 452553,
-    minPayment: 19012,
-    interestRate: 12.49,
-    dueDate: '2025-01-06'
-  },
-  {
-    id: '8',
-    name: 'TATA',
-    type: 'loan',
-    outstanding: 356000,
-    minPayment: 14228,
-    interestRate: 11.25,
-    dueDate: '2025-01-07'
-  }
-];
-
-const dummyExpenses: Expense[] = [];
-
 const Index = () => {
-  const [bankBalance, setBankBalance] = useState(124101);
-  const [accounts, setAccounts] = useState<Account[]>(dummyAccounts);
+  const { toast } = useToast();
+  const { loadData, saveData, isLoaded, setIsLoaded } = useLocalStorage();
+  const [bankBalance, setBankBalance] = useState(50000);
+  const [emergencyFund, setEmergencyFund] = useState(10000);
+  const [emergencyGoal, setEmergencyGoal] = useState(25000);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>(dummyExpenses);
+  const [activeTab, setActiveTab] = useState("accounts");
+  const [undoStack, setUndoStack] = useState<any[]>([]);
+  const [redoStack, setRedoStack] = useState<any[]>([]);
+  const [colorTheme, setColorTheme] = useState("system");
+  const [fontSettings, setFontSettings] = useState<FontSettings>({
+    fontFamily: "Inter",
+    fontSize: "md",
+  });
 
   useEffect(() => {
-    const storedBankBalance = localStorage.getItem('bankBalance');
-    const storedAccounts = localStorage.getItem('accounts');
-    const storedExpenses = localStorage.getItem('expenses');
+    const storedTheme = localStorage.getItem("debtDashboardTheme") || "system";
+    setColorTheme(storedTheme);
+    document.documentElement.setAttribute("data-theme", storedTheme);
 
-    if (storedBankBalance) setBankBalance(parseFloat(storedBankBalance));
-    if (storedAccounts) setAccounts(JSON.parse(storedAccounts));
-    if (storedExpenses) setExpenses(JSON.parse(storedExpenses));
+    const storedFontSettings = localStorage.getItem("debtDashboardFontSettings");
+    if (storedFontSettings) {
+      setFontSettings(JSON.parse(storedFontSettings));
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('bankBalance', bankBalance.toString());
-    localStorage.setItem('accounts', JSON.stringify(accounts));
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-  }, [bankBalance, accounts, expenses]);
+    document.documentElement.setAttribute("data-theme", colorTheme);
+    localStorage.setItem("debtDashboardTheme", colorTheme);
+  }, [colorTheme]);
 
-  const handleBankBalanceChange = (newBalance: number) => {
-    setBankBalance(newBalance);
-  };
+  useEffect(() => {
+    localStorage.setItem("debtDashboardFontSettings", JSON.stringify(fontSettings));
+  }, [fontSettings]);
 
-  const handleAccountsChange = (newAccounts: Account[]) => {
-    setAccounts(newAccounts);
-  };
+  useEffect(() => {
+    const storedData = loadData();
+    if (storedData) {
+      setBankBalance(storedData.bankBalance);
+      setEmergencyFund(storedData.emergencyFund);
+      setEmergencyGoal(storedData.emergencyGoal);
+      setAccounts(storedData.accounts);
+      setExpenses(storedData.expenses);
+      setPaymentLogs(storedData.paymentLogs);
+      setUndoStack(storedData.undoStack);
+      setColorTheme(storedData.colorTheme || "system");
+      setFontSettings(storedData.fontSettings || { fontFamily: "Inter", fontSize: "md" });
+    }
+    setIsLoaded(true);
+  }, []);
 
-  const handleExpensesChange = (newExpenses: Expense[]) => {
-    setExpenses(newExpenses);
-  };
+  useEffect(() => {
+    if (isLoaded) {
+      saveData({
+        bankBalance,
+        emergencyFund,
+        emergencyGoal,
+        accounts,
+        expenses,
+        paymentLogs,
+        undoStack,
+        colorTheme,
+        fontSettings,
+      });
+    }
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings]);
 
   const handlePaymentMade = (payment: PaymentLog) => {
-    setPaymentLogs([...paymentLogs, payment]);
     setBankBalance(payment.balanceAfter);
+    setPaymentLogs([payment, ...paymentLogs]);
   };
 
-  const handleExpensePaid = (amount: number) => {
-    setBankBalance(prev => prev - amount);
-  };
-
-  const handleExpenseAddedToCC = (accountId: string, amount: number) => {
-    const updatedAccounts = accounts.map(acc => 
-      acc.id === accountId 
-        ? { ...acc, outstanding: acc.outstanding + amount }
-        : acc
-    );
-    setAccounts(updatedAccounts);
-  };
-
-  const handleExpenseRemoved = (expense: Expense) => {
-    if (expense.paymentMethod === 'bank' && expense.isPaid) {
-      setBankBalance(prev => prev + expense.amount);
-    } else if (expense.paymentMethod !== 'bank' && expense.isPaid) {
-      const account = accounts.find(acc => acc.name === expense.paymentMethod);
-      if (account?.type === 'credit-card') {
-        const updatedAccounts = accounts.map(acc => 
-          acc.id === account.id 
-            ? { ...acc, outstanding: Math.max(0, acc.outstanding - expense.amount) }
-            : acc
-        );
-        setAccounts(updatedAccounts);
-      }
+  const handleUndo = () => {
+    if (undoStack.length > 0) {
+      const previousState = undoStack[0];
+      setRedoStack([
+        {
+          bankBalance,
+          emergencyFund,
+          emergencyGoal,
+          accounts,
+          expenses,
+          paymentLogs,
+        },
+        ...redoStack,
+      ]);
+      setUndoStack(undoStack.slice(1));
+      setBankBalance(previousState.bankBalance);
+      setEmergencyFund(previousState.emergencyFund);
+      setEmergencyGoal(previousState.emergencyGoal);
+      setAccounts(previousState.accounts);
+      setExpenses(previousState.expenses);
+      setPaymentLogs(previousState.paymentLogs);
+      toast({
+        title: "Undo successful",
+        description: "Reverted to previous state.",
+      });
+    } else {
+      toast({
+        title: "Nothing to undo",
+        description: "No previous states available.",
+      });
     }
   };
 
-  const handleDataImport = (importedData: any) => {
-    if (importedData.accounts) {
-      setAccounts(prev => [...prev, ...importedData.accounts]);
-    }
-    if (importedData.expenses) {
-      setExpenses(prev => [...prev, ...importedData.expenses]);
-    }
-    if (importedData.paymentLogs) {
-      setPaymentLogs(prev => [...prev, ...importedData.paymentLogs]);
-    }
-    if (importedData.bankBalance !== undefined) {
-      setBankBalance(importedData.bankBalance);
+  const handleRedo = () => {
+    if (redoStack.length > 0) {
+      const nextState = redoStack[0];
+      setUndoStack([
+        {
+          bankBalance,
+          emergencyFund,
+          emergencyGoal,
+          accounts,
+          expenses,
+          paymentLogs,
+        },
+        ...undoStack,
+      ]);
+      setRedoStack(redoStack.slice(1));
+      setBankBalance(nextState.bankBalance);
+      setEmergencyFund(nextState.emergencyFund);
+      setEmergencyGoal(nextState.emergencyGoal);
+      setAccounts(nextState.accounts);
+      setExpenses(nextState.expenses);
+      setPaymentLogs(nextState.paymentLogs);
+      toast({
+        title: "Redo successful",
+        description: "Advanced to next state.",
+      });
+    } else {
+      toast({
+        title: "Nothing to redo",
+        description: "No future states available.",
+      });
     }
   };
-
-  // Calculate totals for overview
-  const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
-  const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      <div className="max-w-6xl mx-auto p-4">
-        <StoragePathDisplay />
-        
-        <h1 className="text-3xl font-bold text-purple-100 mb-6">Comprehensive Debt Management Dashboard</h1>
-        
-        {/* Quick Overview with updated styling */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
-            <h3 className="text-sm text-purple-300">Bank Balance</h3>
-            <p className="text-xl font-bold text-green-400">₹{bankBalance.toLocaleString()}</p>
-          </div>
-          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
-            <h3 className="text-sm text-purple-300">Total Outstanding</h3>
-            <p className="text-xl font-bold text-red-400">₹{totalOutstanding.toLocaleString()}</p>
-          </div>
-          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
-            <h3 className="text-sm text-purple-300">Min Payments Due</h3>
-            <p className="text-xl font-bold text-orange-400">₹{totalMinPayments.toLocaleString()}</p>
+    <Layout colorTheme={colorTheme} fontSettings={fontSettings}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="container mx-auto p-6 space-y-6">
+          <HeaderSection bankBalance={bankBalance} setBankBalance={setBankBalance} />
+          <QuickStatsSection
+            bankBalance={bankBalance}
+            emergencyFund={emergencyFund}
+            emergencyGoal={emergencyGoal}
+            accounts={accounts}
+            expenses={expenses}
+          />
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList>
+              <TabsTrigger value="accounts">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Accounts
+              </TabsTrigger>
+              <TabsTrigger value="expenses">
+                <ListChecks className="h-4 w-4 mr-2" />
+                Expenses
+              </TabsTrigger>
+              <TabsTrigger value="wealth">
+                <PiggyBank className="h-4 w-4 mr-2" />
+                Wealth Creation
+              </TabsTrigger>
+              <TabsTrigger value="insights">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Insights
+              </TabsTrigger>
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="accounts">
+              <AccountsSection 
+                accounts={accounts} 
+                expenses={expenses}
+                bankBalance={bankBalance}
+                onAccountsChange={setAccounts}
+                onPaymentMade={handlePaymentMade}
+              />
+            </TabsContent>
+
+            <TabsContent value="expenses">
+              <ExpensesSection expenses={expenses} setExpenses={setExpenses} />
+            </TabsContent>
+
+            <TabsContent value="wealth">
+              <WealthCreationTab 
+                accounts={accounts}
+                expenses={expenses}
+                bankBalance={bankBalance}
+              />
+            </TabsContent>
+
+            <TabsContent value="insights">
+              <InsightsSection accounts={accounts} expenses={expenses} paymentLogs={paymentLogs} />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <SettingsSection
+                bankBalance={bankBalance}
+                setBankBalance={setBankBalance}
+                emergencyFund={emergencyFund}
+                setEmergencyFund={setEmergencyFund}
+                emergencyGoal={emergencyGoal}
+                setEmergencyGoal={setEmergencyGoal}
+                colorTheme={colorTheme}
+                setColorTheme={setColorTheme}
+              />
+              <FontControls fontSettings={fontSettings} setFontSettings={setFontSettings} />
+            </TabsContent>
+          </Tabs>
+
+          <SmartTips accounts={accounts} bankBalance={bankBalance} />
+
+          <div className="flex justify-between">
+            <Button onClick={handleUndo} disabled={undoStack.length === 0} variant="secondary">
+              <Undo className="h-4 w-4 mr-2" />
+              Undo
+            </Button>
+            <Button onClick={handleRedo} disabled={redoStack.length === 0} variant="secondary">
+              <Redo className="h-4 w-4 mr-2" />
+              Redo
+            </Button>
           </div>
         </div>
-
-        <Tabs defaultValue="bank" className="w-full">
-          <TabsList className="grid w-full grid-cols-8 bg-purple-800/50 border border-purple-600/50 backdrop-blur-sm">
-            <TabsTrigger value="bank" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <PiggyBank className="h-4 w-4" />
-              Bank
-            </TabsTrigger>
-            <TabsTrigger value="accounts" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <CreditCard className="h-4 w-4" />
-              Accounts
-            </TabsTrigger>
-            <TabsTrigger value="expenses" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <Receipt className="h-4 w-4" />
-              Expenses
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <BarChart3 className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="burndown" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <Calculator className="h-4 w-4" />
-              Burndown
-            </TabsTrigger>
-            <TabsTrigger value="wealth" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <Coins className="h-4 w-4" />
-              Wealth
-            </TabsTrigger>
-            <TabsTrigger value="import-export" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <Upload className="h-4 w-4" />
-              Import/Export
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="bank" className="mt-6">
-            <BankSection 
-              bankBalance={bankBalance}
-              onBankBalanceChange={handleBankBalanceChange}
-            />
-          </TabsContent>
-          
-          <TabsContent value="accounts" className="mt-6">
-            <AccountsSection 
-              accounts={accounts}
-              bankBalance={bankBalance}
-              onAccountsChange={handleAccountsChange}
-              onPaymentMade={handlePaymentMade}
-            />
-          </TabsContent>
-          
-          <TabsContent value="expenses" className="mt-6">
-            <ExpensesSection 
-              expenses={expenses}
-              bankBalance={bankBalance}
-              accounts={accounts}
-              onExpensesChange={handleExpensesChange}
-              onExpensePaid={handleExpensePaid}
-              onExpenseAddedToCC={handleExpenseAddedToCC}
-              onExpenseRemoved={handleExpenseRemoved}
-            />
-          </TabsContent>
-
-          <TabsContent value="analytics" className="mt-6">
-            <AnalyticsTab 
-              accounts={accounts}
-              expenses={expenses}
-            />
-          </TabsContent>
-
-          <TabsContent value="burndown" className="mt-6">
-            <DebtBurndownTab 
-              accounts={accounts}
-            />
-          </TabsContent>
-
-          <TabsContent value="wealth" className="mt-6">
-            <WealthCreationTab 
-              accounts={accounts}
-              expenses={expenses}
-              bankBalance={bankBalance}
-            />
-          </TabsContent>
-
-          <TabsContent value="import-export" className="mt-6">
-            <ImportExportTab 
-              accounts={accounts}
-              expenses={expenses}
-              paymentLogs={paymentLogs}
-              bankBalance={bankBalance}
-              onDataImport={handleDataImport}
-            />
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-6">
-            <div className="space-y-6">
-              <IntegrationSettings />
-              
-              <div className="bg-purple-800/30 border-purple-600/50 backdrop-blur-sm p-6 rounded-lg">
-                <h2 className="text-lg font-semibold mb-4 text-purple-100">Financial Summary</h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-purple-200">Available Balance:</span>
-                    <span className="font-medium text-purple-100">₹{bankBalance.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-200">Total Debt:</span>
-                    <span className="font-medium text-red-400">₹{totalOutstanding.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-purple-200">Monthly Obligations:</span>
-                    <span className="font-medium text-purple-100">₹{totalMinPayments.toLocaleString()}</span>
-                  </div>
-                  <hr className="border-purple-600/50" />
-                  <div className="flex justify-between text-lg font-semibold">
-                    <span className="text-purple-200">Net Worth:</span>
-                    <span className={bankBalance - totalOutstanding >= 0 ? 'text-green-400' : 'text-red-400'}>
-                      ₹{(bankBalance - totalOutstanding).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>
+    </Layout>
   );
 };
 

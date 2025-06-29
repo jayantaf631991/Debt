@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Plus, Trash2, Calendar, TrendingUp, AlertTriangle, Edit2, Check, X } from "lucide-react";
+import { CreditCard, Plus, Trash2, Calendar, TrendingUp, AlertTriangle, Edit2, Check, X, Calculator, DollarSign } from "lucide-react";
 import { toast } from "sonner";
-import { Account, PaymentLog } from "@/pages/Index";
+import { Account, PaymentLog, Expense } from "@/pages/Index";
 
 interface AccountsSectionProps {
   accounts: Account[];
+  expenses: Expense[];
   bankBalance: number;
   onAccountsChange: (accounts: Account[]) => void;
   onPaymentMade: (payment: PaymentLog) => void;
@@ -19,6 +20,7 @@ interface AccountsSectionProps {
 
 export const AccountsSection: React.FC<AccountsSectionProps> = ({ 
   accounts, 
+  expenses,
   bankBalance, 
   onAccountsChange, 
   onPaymentMade 
@@ -27,6 +29,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   const [customPayments, setCustomPayments] = useState<{ [key: string]: string }>({});
   const [editingField, setEditingField] = useState<{ accountId: string; field: string } | null>(null);
   const [editValues, setEditValues] = useState<{ [key: string]: string }>({});
+  const [dynamicPaymentAmounts, setDynamicPaymentAmounts] = useState<{ [key: string]: string }>({});
   const [newAccount, setNewAccount] = useState({
     name: '',
     type: 'credit-card' as 'credit-card' | 'loan',
@@ -35,6 +38,11 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     interestRate: '',
     dueDate: ''
   });
+
+  // Calculate available amount after all EMIs and expenses
+  const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
+  const totalExpenses = expenses.reduce((sum, exp) => exp.isPaid ? sum + exp.amount : sum, 0);
+  const availableAfterObligations = bankBalance - totalMinPayments - totalExpenses;
 
   const handleAddAccount = () => {
     if (!newAccount.name || !newAccount.outstanding || !newAccount.minPayment) {
@@ -164,100 +172,188 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     return <Badge variant="secondary">{days} days</Badge>;
   };
 
-  const getIntelligentPaymentOptions = (account: Account) => {
-    const availableAmount = bankBalance * 0.7; // Use max 70% of available balance
+  const calculateDynamicPaymentImpact = (account: Account, extraAmount: number) => {
     const monthlyRate = (account.interestRate / 100) / 12;
+    const newOutstanding = Math.max(0, account.outstanding - extraAmount);
     
-    const options = [];
+    if (account.type === 'credit-card') {
+      const newMinPayment = Math.max(500, newOutstanding * 0.05);
+      const currentInterest = account.outstanding * monthlyRate;
+      const newInterest = newOutstanding * monthlyRate;
+      const interestSaved = currentInterest - newInterest;
+      
+      // Calculate next due date (assuming 30 days cycle)
+      const nextDueDate = new Date();
+      nextDueDate.setDate(nextDueDate.getDate() + 30);
+      
+      return {
+        newOutstanding,
+        newMinPayment,
+        interestSaved,
+        nextDueDate: nextDueDate.toLocaleDateString(),
+        monthlyBenefit: interestSaved,
+        payoffMonths: newOutstanding > 0 ? Math.ceil(newOutstanding / newMinPayment) : 0
+      };
+    } else {
+      // For loans
+      const currentTenure = account.outstanding > 0 && account.minPayment > 0 
+        ? Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate)
+        : 0;
+      
+      const newTenure = newOutstanding > 0 && account.minPayment > 0
+        ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate)
+        : 0;
+      
+      const tenureReduction = Math.max(0, currentTenure - newTenure);
+      const interestSaved = extraAmount * (account.interestRate / 100);
+      
+      // Calculate next EMI due date
+      const nextDueDate = new Date(account.dueDate);
+      nextDueDate.setMonth(nextDueDate.getMonth() + 1);
+      
+      return {
+        newOutstanding,
+        newMinPayment: account.minPayment, // EMI remains same
+        interestSaved: interestSaved / 12, // Monthly interest saved
+        nextDueDate: nextDueDate.toLocaleDateString(),
+        tenureReduction,
+        monthlyBenefit: interestSaved / 12,
+        payoffMonths: newTenure
+      };
+    }
+  };
+
+  const getOptimalPaymentStrategies = (account: Account) => {
+    const strategies = [];
+    const maxPayable = Math.min(availableAfterObligations * 0.8, account.outstanding);
     
-    // Strategy 1: Reduce EMI/Min payment by 10-15%
-    if (account.type === 'loan') {
-      const targetReduction = account.minPayment * 0.12; // 12% reduction
-      const extraAmount = (targetReduction * account.outstanding) / (account.minPayment - targetReduction);
-      if (extraAmount > 0 && extraAmount <= availableAmount) {
-        const newOutstanding = Math.max(0, account.outstanding - extraAmount);
-        const newEMI = newOutstanding > 0 ? (newOutstanding * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -12)) : 0;
-        const emiReduction = account.minPayment - newEMI;
-        
-        options.push({
-          extraAmount: Math.round(extraAmount),
-          description: `EMI Relief: Pay ₹${Math.round(extraAmount).toLocaleString()} extra → EMI reduces by ₹${Math.round(emiReduction).toLocaleString()}/month`,
-          benefit: `EMI Relief`,
-          impact: Math.round(emiReduction)
-        });
-      }
-    }
+    if (maxPayable <= 0) return strategies;
 
-    // Strategy 2: Reduce tenure by 6-12 months
-    if (account.type === 'loan') {
-      const currentTenure = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
-      const targetTenure = Math.max(6, currentTenure - 9); // Reduce by 9 months
-      
-      const requiredEMI = (account.outstanding * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -targetTenure));
-      const extraAmount = requiredEMI - account.minPayment;
-      
-      if (extraAmount > 0 && extraAmount <= availableAmount) {
-        const tenureReduction = currentTenure - targetTenure;
-        const interestSaved = (requiredEMI * targetTenure) - (account.minPayment * currentTenure);
-        
-        options.push({
-          extraAmount: Math.round(extraAmount),
-          description: `Tenure Cut: Pay ₹${Math.round(extraAmount).toLocaleString()} extra monthly → Save ${Math.round(tenureReduction)} months & ₹${Math.abs(Math.round(interestSaved)).toLocaleString()} interest`,
-          benefit: `Tenure Reduction`,
-          impact: Math.round(tenureReduction)
-        });
-      }
-    }
-
-    // Strategy 3: Interest optimization (10-20% interest reduction)
-    const interestOptimizationAmounts = [
-      account.outstanding * 0.05, // 5% of outstanding
-      account.outstanding * 0.10, // 10% of outstanding
-      account.outstanding * 0.15  // 15% of outstanding
-    ];
-
-    interestOptimizationAmounts.forEach(extraAmount => {
-      if (extraAmount <= availableAmount && extraAmount >= 1000) {
-        const newOutstanding = Math.max(0, account.outstanding - extraAmount);
-        const currentMonthlyInterest = account.outstanding * monthlyRate;
-        const newMonthlyInterest = newOutstanding * monthlyRate;
-        const interestSaved = currentMonthlyInterest - newMonthlyInterest;
-        
-        if (interestSaved >= 100) { // Only show if saves at least ₹100/month
-          let tenureReduction = 0;
-          if (account.type === 'loan') {
-            const currentTenure = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
-            const newTenure = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
-            tenureReduction = currentTenure - newTenure;
-          }
-          
-          options.push({
-            extraAmount: Math.round(extraAmount),
-            description: account.type === 'loan' 
-              ? `Interest Save: Pay ₹${Math.round(extraAmount).toLocaleString()} → Save ₹${Math.round(interestSaved).toLocaleString()}/month + ${Math.round(tenureReduction)} months`
-              : `Interest Save: Pay ₹${Math.round(extraAmount).toLocaleString()} → Save ₹${Math.round(interestSaved).toLocaleString()}/month`,
-            benefit: `Interest Optimization`,
-            impact: Math.round(interestSaved)
-          });
-        }
-      }
-    });
-
-    // Strategy 4: Complete payoff options
-    if (account.outstanding <= availableAmount) {
-      const totalInterestSaved = account.type === 'loan' 
-        ? (account.minPayment * 12) - account.outstanding // Rough calculation
-        : (account.outstanding * monthlyRate * 6); // 6 months of interest saved
-      
-      options.push({
-        extraAmount: account.outstanding,
-        description: `Full Payoff: Clear entire debt → Save ₹${Math.round(totalInterestSaved).toLocaleString()} in future interest + monthly EMI/payment`,
-        benefit: `Complete Freedom`,
-        impact: account.minPayment
+    // Strategy 1: Maximum benefit with available amount
+    const maxBenefitAmount = Math.min(maxPayable, account.outstanding * 0.25);
+    if (maxBenefitAmount > 1000) {
+      const impact = calculateDynamicPaymentImpact(account, maxBenefitAmount);
+      strategies.push({
+        amount: Math.round(maxBenefitAmount),
+        type: 'Maximum Benefit',
+        description: `Pay ₹${Math.round(maxBenefitAmount).toLocaleString()} for maximum impact`,
+        impact,
+        priority: 'high'
       });
     }
 
-    return options.slice(0, 4); // Return top 4 options
+    // Strategy 2: Moderate payment (50% of available)
+    const moderateAmount = Math.min(maxPayable * 0.5, account.outstanding * 0.15);
+    if (moderateAmount > 500 && moderateAmount !== maxBenefitAmount) {
+      const impact = calculateDynamicPaymentImpact(account, moderateAmount);
+      strategies.push({
+        amount: Math.round(moderateAmount),
+        type: 'Balanced Approach',
+        description: `Pay ₹${Math.round(moderateAmount).toLocaleString()} for steady progress`,
+        impact,
+        priority: 'medium'
+      });
+    }
+
+    // Strategy 3: Conservative payment (25% of available)
+    const conservativeAmount = Math.min(maxPayable * 0.25, account.outstanding * 0.1);
+    if (conservativeAmount > 500 && conservativeAmount !== moderateAmount) {
+      const impact = calculateDynamicPaymentImpact(account, conservativeAmount);
+      strategies.push({
+        amount: Math.round(conservativeAmount),
+        type: 'Conservative',
+        description: `Pay ₹${Math.round(conservativeAmount).toLocaleString()} with safety buffer`,
+        impact,
+        priority: 'low'
+      });
+    }
+
+    // Strategy 4: Complete payoff if feasible
+    if (account.outstanding <= maxPayable) {
+      const impact = calculateDynamicPaymentImpact(account, account.outstanding);
+      strategies.push({
+        amount: account.outstanding,
+        type: 'Complete Payoff',
+        description: `Clear entire debt of ₹${account.outstanding.toLocaleString()}`,
+        impact,
+        priority: 'complete'
+      });
+    }
+
+    return strategies;
+  };
+
+  const renderDynamicPaymentCalculator = (account: Account) => {
+    const currentAmount = parseFloat(dynamicPaymentAmounts[account.id] || '0');
+    const impact = currentAmount > 0 ? calculateDynamicPaymentImpact(account, currentAmount) : null;
+    
+    return (
+      <div className="bg-indigo-900/50 p-4 rounded-lg space-y-3">
+        <h4 className="text-indigo-200 font-medium flex items-center gap-2">
+          <Calculator className="h-4 w-4" />
+          Dynamic Payment Calculator
+        </h4>
+        
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            placeholder="Enter amount"
+            value={dynamicPaymentAmounts[account.id] || ''}
+            onChange={(e) => setDynamicPaymentAmounts({...dynamicPaymentAmounts, [account.id]: e.target.value})}
+            className="bg-indigo-800/50 border-indigo-600 text-indigo-100"
+            max={availableAfterObligations}
+          />
+          <Badge className="bg-green-600 text-white">
+            Max: ₹{availableAfterObligations.toLocaleString()}
+          </Badge>
+        </div>
+
+        {impact && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="bg-indigo-800/30 p-3 rounded">
+              <p className="text-indigo-300">New Outstanding</p>
+              <p className="text-indigo-100 font-semibold">₹{impact.newOutstanding.toLocaleString()}</p>
+            </div>
+            <div className="bg-indigo-800/30 p-3 rounded">
+              <p className="text-indigo-300">Next Due</p>
+              <p className="text-indigo-100 font-semibold">{impact.nextDueDate}</p>
+            </div>
+            <div className="bg-indigo-800/30 p-3 rounded">
+              <p className="text-indigo-300">New Min Payment</p>
+              <p className="text-indigo-100 font-semibold">₹{Math.round(impact.newMinPayment).toLocaleString()}</p>
+            </div>
+            <div className="bg-indigo-800/30 p-3 rounded">
+              <p className="text-indigo-300">Monthly Savings</p>
+              <p className="text-green-400 font-semibold">₹{Math.round(impact.monthlyBenefit).toLocaleString()}</p>
+            </div>
+            {account.type === 'loan' && impact.tenureReduction && (
+              <div className="bg-indigo-800/30 p-3 rounded">
+                <p className="text-indigo-300">Tenure Reduced</p>
+                <p className="text-yellow-400 font-semibold">{Math.round(impact.tenureReduction)} months</p>
+              </div>
+            )}
+            <div className="bg-indigo-800/30 p-3 rounded">
+              <p className="text-indigo-300">Payoff Timeline</p>
+              <p className="text-indigo-100 font-semibold">
+                {impact.payoffMonths > 0 ? `${Math.round(impact.payoffMonths)} months` : 'Paid off!'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {currentAmount > 0 && currentAmount <= availableAfterObligations && (
+          <Button
+            onClick={() => {
+              handlePayment(account.id, currentAmount, 'custom');
+              setDynamicPaymentAmounts({...dynamicPaymentAmounts, [account.id]: ''});
+            }}
+            className="w-full bg-green-600 hover:bg-green-500 mt-3"
+          >
+            Make Payment of ₹{currentAmount.toLocaleString()}
+          </Button>
+        )}
+      </div>
+    );
   };
 
   const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false) => {
@@ -392,11 +488,28 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
             </DialogContent>
           </Dialog>
         </div>
+        
+        {/* Available Amount Display */}
+        <div className="bg-green-800/30 border-green-600/30 p-4 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-green-400" />
+              <span className="text-green-200">Available for Extra Payments</span>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-green-400">₹{availableAfterObligations.toLocaleString()}</p>
+              <p className="text-green-300 text-sm">After EMIs (₹{totalMinPayments.toLocaleString()}) & Expenses (₹{totalExpenses.toLocaleString()})</p>
+            </div>
+          </div>
+        </div>
       </CardHeader>
+      
       <CardContent className="space-y-4">
         {accounts.map((account) => (
           <Card key={account.id} className="bg-purple-700/30 border-purple-500/30">
             <CardContent className="p-4">
+              
+              
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-purple-100 flex items-center gap-2">
@@ -428,6 +541,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </Button>
               </div>
 
+              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                 <div>
                   <p className="text-purple-300 text-sm">Outstanding</p>
@@ -457,6 +572,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                   </p>
                 </div>
               </div>
+
+              
 
               <div className="flex flex-wrap gap-2 mb-3">
                 {account.type === 'credit-card' ? (
@@ -518,12 +635,40 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </div>
               </div>
 
+              {/* Dynamic Payment Calculator */}
+              {renderDynamicPaymentCalculator(account)}
+
+              {/* Optimal Payment Strategies */}
               <div className="bg-purple-900/50 p-3 rounded-lg space-y-2">
-                <h4 className="text-purple-200 font-medium mb-2">💡 Smart Payment Strategies</h4>
-                {getIntelligentPaymentOptions(account).map((option, index) => (
+                <h4 className="text-purple-200 font-medium mb-2">💡 Optimal Payment Strategies</h4>
+                {getOptimalPaymentStrategies(account).map((strategy, index) => (
                   <div key={index} className="flex items-center justify-between bg-purple-800/30 p-2 rounded text-sm">
-                    <span className="text-purple-200">{option.description}</span>
-                    <Badge className="bg-purple-600 text-white">{option.benefit}</Badge>
+                    <div>
+                      <span className="text-purple-200 font-medium">{strategy.type}</span>
+                      <p className="text-purple-300 text-xs">{strategy.description}</p>
+                      <p className="text-xs text-purple-400">
+                        New Outstanding: ₹{strategy.impact.newOutstanding.toLocaleString()} | 
+                        Monthly Benefit: ₹{Math.round(strategy.impact.monthlyBenefit).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <Badge className={`${
+                        strategy.priority === 'high' ? 'bg-red-600' : 
+                        strategy.priority === 'medium' ? 'bg-yellow-600' : 
+                        strategy.priority === 'complete' ? 'bg-green-600' : 'bg-blue-600'
+                      }`}>
+                        {strategy.type}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setDynamicPaymentAmounts({...dynamicPaymentAmounts, [account.id]: strategy.amount.toString()});
+                        }}
+                        className="ml-2 bg-purple-600 hover:bg-purple-500 text-xs"
+                      >
+                        Use Amount
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
