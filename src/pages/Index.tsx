@@ -58,53 +58,86 @@ export interface Expense {
   category: string;
 }
 
-// Simplified dummy data
+// Updated dummy data based on the screenshot
 const dummyAccounts: Account[] = [
   {
     id: '1',
-    name: 'Credit Card',
+    name: 'Axis Bank-Citi',
     type: 'credit-card',
-    outstanding: 25000,
-    minPayment: 1250,
-    interestRate: 24,
-    dueDate: '2025-01-15'
+    outstanding: 696000,
+    minPayment: 14010,
+    interestRate: 3.75,
+    dueDate: '2025-01-10'
   },
   {
-    id: '2',
-    name: 'Personal Loan',
+    id: '2', 
+    name: 'SBI_17',
+    type: 'credit-card',
+    outstanding: 56000,
+    minPayment: 1219,
+    interestRate: 3.89,
+    dueDate: '2025-01-13'
+  },
+  {
+    id: '3',
+    name: 'SBI_35',
+    type: 'credit-card', 
+    outstanding: 55000,
+    minPayment: 1240,
+    interestRate: 3.96,
+    dueDate: '2025-01-13'
+  },
+  {
+    id: '4',
+    name: 'ICICI',
+    type: 'credit-card',
+    outstanding: 69000,
+    minPayment: 1750,
+    interestRate: 3.32,
+    dueDate: '2025-01-17'
+  },
+  {
+    id: '5',
+    name: 'One Card',
+    type: 'credit-card',
+    outstanding: 2255546,
+    minPayment: 19253,
+    interestRate: 3.75,
+    dueDate: '2025-01-01'
+  },
+  {
+    id: '6',
+    name: 'Axis PL',
     type: 'loan',
-    outstanding: 100000,
-    minPayment: 5000,
-    interestRate: 12,
+    outstanding: 872970,
+    minPayment: 32969,
+    interestRate: 11.5,
     dueDate: '2025-01-05'
+  },
+  {
+    id: '7',
+    name: 'Aditya Birla',
+    type: 'loan',
+    outstanding: 452553,
+    minPayment: 19012,
+    interestRate: 12.49,
+    dueDate: '2025-01-06'
+  },
+  {
+    id: '8',
+    name: 'TATA',
+    type: 'loan',
+    outstanding: 356000,
+    minPayment: 14228,
+    interestRate: 11.25,
+    dueDate: '2025-01-07'
   }
 ];
 
-const dummyExpenses: Expense[] = [
-  {
-    id: 'e1',
-    name: 'Electricity Bill',
-    amount: 2000,
-    type: 'recurring',
-    paymentMethod: 'bank',
-    isPaid: true,
-    date: '2024-12-01T00:00:00Z',
-    category: 'utilities'
-  },
-  {
-    id: 'e2',
-    name: 'Groceries',
-    amount: 5000,
-    type: 'one-time',
-    paymentMethod: 'Credit Card',
-    isPaid: true,
-    date: '2024-12-15T00:00:00Z',
-    category: 'food'
-  }
-];
+const dummyExpenses: Expense[] = [];
 
 const Index = () => {
-  const [bankBalance, setBankBalance] = useState(50000);
+  const [bankBalance, setBankBalance] = useState(124101);
   const [accounts, setAccounts] = useState<Account[]>(dummyAccounts);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>(dummyExpenses);
@@ -170,10 +203,6 @@ const Index = () => {
       }
     }
   };
-
-  // Calculate totals for overview
-  const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
-  const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
 
   const handleDataImport = (importedData: any) => {
     if (importedData.accounts) {
