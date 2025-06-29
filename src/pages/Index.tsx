@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,8 +69,13 @@ const Index = () => {
   const [redoStack, setRedoStack] = useState<any[]>([]);
   const [colorTheme, setColorTheme] = useState("system");
   const [fontSettings, setFontSettings] = useState<FontSettings>({
-    fontSize: "md",
+    size: 16,
+    family: 'Inter',
+    weight: 'normal',
+    color: 'white',
+    italic: false,
   });
+  const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("debtDashboardTheme") || "system";
@@ -104,7 +108,14 @@ const Index = () => {
       setPaymentLogs(storedData.paymentLogs);
       setUndoStack(storedData.undoStack);
       setColorTheme(storedData.colorTheme || "system");
-      setFontSettings(storedData.fontSettings || { fontSize: "md" });
+      setFontSettings(storedData.fontSettings || {
+        size: 16,
+        family: 'Inter',
+        weight: 'normal',
+        color: 'white',
+        italic: false,
+      });
+      setSpendingCategories(storedData.spendingCategories || {});
     }
     setIsLoaded(true);
   }, []);
@@ -121,9 +132,10 @@ const Index = () => {
         undoStack,
         colorTheme,
         fontSettings,
+        spendingCategories,
       });
     }
-  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings]);
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories]);
 
   const handlePaymentMade = (payment: PaymentLog) => {
     setBankBalance(payment.balanceAfter);
@@ -215,14 +227,20 @@ const Index = () => {
   };
 
   return (
-    <Layout fontSettings={fontSettings}>
+    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
-          <HeaderSection />
+          <HeaderSection 
+            undoStack={undoStack}
+            redoStack={redoStack}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            fontSettings={fontSettings}
+            onFontChange={setFontSettings}
+          />
           <QuickStatsSection
             bankBalance={bankBalance}
             emergencyFund={emergencyFund}
-            accounts={accounts}
             expenses={expenses}
           />
 
@@ -281,7 +299,11 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="insights">
-              <InsightsSection accounts={accounts} paymentLogs={paymentLogs} />
+              <InsightsSection 
+                accounts={accounts} 
+                paymentLogs={paymentLogs}
+                spendingCategories={spendingCategories}
+              />
             </TabsContent>
 
             <TabsContent value="settings">
@@ -320,7 +342,10 @@ const Index = () => {
                   </CardContent>
                 </Card>
               </div>
-              <FontControls fontSettings={fontSettings} />
+              <FontControls 
+                fontSettings={fontSettings} 
+                onFontChange={setFontSettings}
+              />
             </TabsContent>
           </Tabs>
 

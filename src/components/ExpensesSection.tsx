@@ -64,6 +64,7 @@ export const ExpensesSection: React.FC<ExpensesSectionProps> = ({
       paymentMethod: newExpense.paymentMethod,
       isPaid: false,
       date: new Date().toISOString(),
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
       category: newExpense.category
     };
 
