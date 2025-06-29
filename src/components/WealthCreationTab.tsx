@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -155,7 +154,7 @@ export const WealthCreationTab: React.FC<WealthCreationTabProps> = ({
 
   const recommendations = getIntelligentRecommendations();
   const goalProgress = savingGoal.target > 0 ? (totalSaved / savingGoal.target) * 100 : 0;
-  const monthlyProgress = savingGoal.monthly > 0 ? (currentMonthSaved / savingGoal.monthly) * 100 : 0);
+  const monthlyProgress = savingGoal.monthly > 0 ? (currentMonthSaved / savingGoal.monthly) * 100 : 0;
 
   return (
     <div className="space-y-6">
