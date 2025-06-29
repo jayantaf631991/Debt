@@ -94,21 +94,31 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   };
 
   const handlePayment = (accountId: string, amount: number, type: 'minimum' | 'full' | 'custom' | 'emi') => {
-    if (amount > bankBalance) {
+    const account = accounts.find(acc => acc.id === accountId);
+    if (!account) return;
+
+    // For minimum/EMI payments, add the custom amount to the minimum payment
+    let finalAmount = amount;
+    if (type === 'custom') {
+      if (account.type === 'credit-card') {
+        finalAmount = account.minPayment + amount; // Add to minimum payment
+      } else {
+        finalAmount = account.minPayment + amount; // Add to EMI
+      }
+    }
+
+    if (finalAmount > bankBalance) {
       toast.error("Insufficient bank balance!");
       return;
     }
-
-    const account = accounts.find(acc => acc.id === accountId);
-    if (!account) return;
 
     const updatedAccounts = accounts.map(acc => {
       if (acc.id === accountId) {
         return {
           ...acc,
-          outstanding: Math.max(0, acc.outstanding - amount),
+          outstanding: Math.max(0, acc.outstanding - finalAmount),
           lastPayment: {
-            amount,
+            amount: finalAmount,
             date: new Date().toISOString(),
             type
           }
@@ -123,15 +133,15 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
       id: Date.now().toString(),
       accountId,
       accountName: account.name,
-      amount,
+      amount: finalAmount,
       type,
       date: new Date().toISOString(),
       balanceBefore: bankBalance,
-      balanceAfter: bankBalance - amount
+      balanceAfter: bankBalance - finalAmount
     };
 
     onPaymentMade(payment);
-    toast.success(`Payment of ₹${amount.toLocaleString()} made successfully!`);
+    toast.success(`Payment of ₹${finalAmount.toLocaleString()} made successfully!`);
   };
 
   const handleDeleteAccount = (accountId: string) => {
@@ -154,44 +164,100 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     return <Badge variant="secondary">{days} days</Badge>;
   };
 
-  const getSmartTips = (account: Account) => {
-    const paymentOptions = [2000, 5000, 10000];
-    const tips = [];
-
-    for (const extraAmount of paymentOptions) {
-      if (extraAmount > bankBalance * 0.5) continue; // Don't suggest more than 50% of bank balance
-      if (extraAmount >= account.outstanding) continue; // Don't suggest more than outstanding
-
-      const currentOutstanding = account.outstanding;
-      const newOutstanding = Math.max(0, currentOutstanding - extraAmount);
-      
-      // Calculate monthly interest rate
-      const monthlyRate = (account.interestRate / 100) / 12;
-      
-      // Calculate current and new monthly interest charges
-      const currentMonthlyInterest = currentOutstanding * monthlyRate;
-      const newMonthlyInterest = newOutstanding * monthlyRate;
-      const interestSaved = currentMonthlyInterest - newMonthlyInterest;
-
-      if (account.type === 'credit-card') {
-        const newMinPayment = Math.max(500, newOutstanding * 0.05);
+  const getIntelligentPaymentOptions = (account: Account) => {
+    const availableAmount = bankBalance * 0.7; // Use max 70% of available balance
+    const monthlyRate = (account.interestRate / 100) / 12;
+    
+    const options = [];
+    
+    // Strategy 1: Reduce EMI/Min payment by 10-15%
+    if (account.type === 'loan') {
+      const targetReduction = account.minPayment * 0.12; // 12% reduction
+      const extraAmount = (targetReduction * account.outstanding) / (account.minPayment - targetReduction);
+      if (extraAmount > 0 && extraAmount <= availableAmount) {
+        const newOutstanding = Math.max(0, account.outstanding - extraAmount);
+        const newEMI = newOutstanding > 0 ? (newOutstanding * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -12)) : 0;
+        const emiReduction = account.minPayment - newEMI;
         
-        if (interestSaved >= 10) { // Only show if meaningful savings
-          tips.push(`💰 Pay ₹${extraAmount.toLocaleString()} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | New min: ₹${newMinPayment.toFixed(0)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`);
-        }
-      } else {
-        // For loans, calculate time savings
-        const currentMonths = currentOutstanding > 0 ? Math.log(1 + (currentOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
-        const newMonths = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
-        const monthsSaved = Math.max(0, currentMonths - newMonths);
-        
-        if (interestSaved >= 10) { // Only show if meaningful savings
-          tips.push(`🏠 Pay ₹${extraAmount.toLocaleString()} extra → Outstanding: ₹${newOutstanding.toLocaleString()} | Months saved: ${monthsSaved.toFixed(1)} | Interest saved: ₹${interestSaved.toFixed(0)}/month`);
-        }
+        options.push({
+          extraAmount: Math.round(extraAmount),
+          description: `EMI Relief: Pay ₹${Math.round(extraAmount).toLocaleString()} extra → EMI reduces by ₹${Math.round(emiReduction).toLocaleString()}/month`,
+          benefit: `EMI Relief`,
+          impact: Math.round(emiReduction)
+        });
       }
     }
 
-    return tips.length > 0 ? tips : [`💡 Consider paying more than minimum to save on interest charges (${account.interestRate}% annual rate)`];
+    // Strategy 2: Reduce tenure by 6-12 months
+    if (account.type === 'loan') {
+      const currentTenure = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
+      const targetTenure = Math.max(6, currentTenure - 9); // Reduce by 9 months
+      
+      const requiredEMI = (account.outstanding * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -targetTenure));
+      const extraAmount = requiredEMI - account.minPayment;
+      
+      if (extraAmount > 0 && extraAmount <= availableAmount) {
+        const tenureReduction = currentTenure - targetTenure;
+        const interestSaved = (requiredEMI * targetTenure) - (account.minPayment * currentTenure);
+        
+        options.push({
+          extraAmount: Math.round(extraAmount),
+          description: `Tenure Cut: Pay ₹${Math.round(extraAmount).toLocaleString()} extra monthly → Save ${Math.round(tenureReduction)} months & ₹${Math.abs(Math.round(interestSaved)).toLocaleString()} interest`,
+          benefit: `Tenure Reduction`,
+          impact: Math.round(tenureReduction)
+        });
+      }
+    }
+
+    // Strategy 3: Interest optimization (10-20% interest reduction)
+    const interestOptimizationAmounts = [
+      account.outstanding * 0.05, // 5% of outstanding
+      account.outstanding * 0.10, // 10% of outstanding
+      account.outstanding * 0.15  // 15% of outstanding
+    ];
+
+    interestOptimizationAmounts.forEach(extraAmount => {
+      if (extraAmount <= availableAmount && extraAmount >= 1000) {
+        const newOutstanding = Math.max(0, account.outstanding - extraAmount);
+        const currentMonthlyInterest = account.outstanding * monthlyRate;
+        const newMonthlyInterest = newOutstanding * monthlyRate;
+        const interestSaved = currentMonthlyInterest - newMonthlyInterest;
+        
+        if (interestSaved >= 100) { // Only show if saves at least ₹100/month
+          let tenureReduction = 0;
+          if (account.type === 'loan') {
+            const currentTenure = Math.log(1 + (account.outstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate);
+            const newTenure = newOutstanding > 0 ? Math.log(1 + (newOutstanding * monthlyRate) / account.minPayment) / Math.log(1 + monthlyRate) : 0;
+            tenureReduction = currentTenure - newTenure;
+          }
+          
+          options.push({
+            extraAmount: Math.round(extraAmount),
+            description: account.type === 'loan' 
+              ? `Interest Save: Pay ₹${Math.round(extraAmount).toLocaleString()} → Save ₹${Math.round(interestSaved).toLocaleString()}/month + ${Math.round(tenureReduction)} months`
+              : `Interest Save: Pay ₹${Math.round(extraAmount).toLocaleString()} → Save ₹${Math.round(interestSaved).toLocaleString()}/month`,
+            benefit: `Interest Optimization`,
+            impact: Math.round(interestSaved)
+          });
+        }
+      }
+    });
+
+    // Strategy 4: Complete payoff options
+    if (account.outstanding <= availableAmount) {
+      const totalInterestSaved = account.type === 'loan' 
+        ? (account.minPayment * 12) - account.outstanding // Rough calculation
+        : (account.outstanding * monthlyRate * 6); // 6 months of interest saved
+      
+      options.push({
+        extraAmount: account.outstanding,
+        description: `Full Payoff: Clear entire debt → Save ₹${Math.round(totalInterestSaved).toLocaleString()} in future interest + monthly EMI/payment`,
+        benefit: `Complete Freedom`,
+        impact: account.minPayment
+      });
+    }
+
+    return options.slice(0, 4); // Return top 4 options
   };
 
   const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false) => {
@@ -426,7 +492,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
-                    placeholder="Custom amount"
+                    placeholder="Extra amount"
                     value={customPayments[account.id] || ''}
                     onChange={(e) => setCustomPayments({...customPayments, [account.id]: e.target.value})}
                     className="w-32 bg-purple-800/50 border-purple-600 text-purple-100"
@@ -444,14 +510,21 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                     className="bg-indigo-600 hover:bg-indigo-500 text-white"
                     size="sm"
                   >
-                    Pay Custom
+                    Pay Extra
                   </Button>
+                  <span className="text-purple-300 text-xs">
+                    (Added to {account.type === 'credit-card' ? 'minimum' : 'EMI'})
+                  </span>
                 </div>
               </div>
 
               <div className="bg-purple-900/50 p-3 rounded-lg space-y-2">
-                {getSmartTips(account).map((tip, index) => (
-                  <p key={index} className="text-purple-200 text-sm">{tip}</p>
+                <h4 className="text-purple-200 font-medium mb-2">💡 Smart Payment Strategies</h4>
+                {getIntelligentPaymentOptions(account).map((option, index) => (
+                  <div key={index} className="flex items-center justify-between bg-purple-800/30 p-2 rounded text-sm">
+                    <span className="text-purple-200">{option.description}</span>
+                    <Badge className="bg-purple-600 text-white">{option.benefit}</Badge>
+                  </div>
                 ))}
               </div>
             </CardContent>

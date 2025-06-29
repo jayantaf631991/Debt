@@ -8,6 +8,7 @@ import { AnalyticsTab } from "@/components/AnalyticsTab";
 import { ImportExportTab } from "@/components/ImportExportTab";
 import { IntegrationSettings } from "@/components/IntegrationSettings";
 import { DebtBurndownTab } from "@/components/DebtBurndownTab";
+import { WealthCreationTab } from "@/components/WealthCreationTab";
 import { 
   Home,
   PiggyBank,
@@ -18,7 +19,8 @@ import {
   TrendingUp,
   Upload,
   Settings,
-  Calculator
+  Calculator,
+  Coins
 } from "lucide-react";
 
 export interface Account {
@@ -247,7 +249,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="bank" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 bg-purple-800/50 border border-purple-600/50 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-8 bg-purple-800/50 border border-purple-600/50 backdrop-blur-sm">
             <TabsTrigger value="bank" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <PiggyBank className="h-4 w-4" />
               Bank
@@ -267,6 +269,10 @@ const Index = () => {
             <TabsTrigger value="burndown" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <Calculator className="h-4 w-4" />
               Burndown
+            </TabsTrigger>
+            <TabsTrigger value="wealth" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
+              <Coins className="h-4 w-4" />
+              Wealth
             </TabsTrigger>
             <TabsTrigger value="import-export" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <Upload className="h-4 w-4" />
@@ -316,6 +322,14 @@ const Index = () => {
           <TabsContent value="burndown" className="mt-6">
             <DebtBurndownTab 
               accounts={accounts}
+            />
+          </TabsContent>
+
+          <TabsContent value="wealth" className="mt-6">
+            <WealthCreationTab 
+              accounts={accounts}
+              expenses={expenses}
+              bankBalance={bankBalance}
             />
           </TabsContent>
 
