@@ -239,7 +239,7 @@ export const DebtBurndownTab: React.FC<DebtBurndownProps> = ({ accounts }) => {
                 <Checkbox 
                   id="cc" 
                   checked={includeCreditCards}
-                  onCheckedChange={setIncludeCreditCards}
+                  onCheckedChange={(checked) => setIncludeCreditCards(checked === true)}
                 />
                 <label htmlFor="cc" className="text-purple-200 text-sm">Credit Cards</label>
               </div>
@@ -247,7 +247,7 @@ export const DebtBurndownTab: React.FC<DebtBurndownProps> = ({ accounts }) => {
                 <Checkbox 
                   id="loans" 
                   checked={includeLoans}
-                  onCheckedChange={setIncludeLoans}
+                  onCheckedChange={(checked) => setIncludeLoans(checked === true)}
                 />
                 <label htmlFor="loans" className="text-purple-200 text-sm">Loans</label>
               </div>
@@ -312,7 +312,7 @@ export const DebtBurndownTab: React.FC<DebtBurndownProps> = ({ accounts }) => {
                       <Checkbox
                         checked={scenario.include}
                         onCheckedChange={(checked) => 
-                          handleScenarioChange(scenario.id, 'include', checked)
+                          handleScenarioChange(scenario.id, 'include', checked === true)
                         }
                       />
                     </TableCell>
