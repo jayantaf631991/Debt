@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo } from "lucide-react";
+import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
 import { QuickStatsSection } from "@/components/QuickStatsSection";
 import { AccountsSection } from "@/components/AccountsSection";
@@ -16,6 +16,7 @@ import { SmartTips } from "@/components/SmartTips";
 import { FontControls, FontSettings } from "@/components/FontControls";
 import { Layout } from "@/components/Layout";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection";
 
 export interface Account {
   id: string;
@@ -76,6 +77,7 @@ const Index = () => {
     italic: false,
   });
   const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({});
+  const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("debtDashboardTheme") || "system";
@@ -116,6 +118,7 @@ const Index = () => {
         italic: false,
       });
       setSpendingCategories(storedData.spendingCategories || {});
+      setInsurancePolicies(storedData.insurancePolicies || []);
     }
     setIsLoaded(true);
   }, []);
@@ -133,9 +136,10 @@ const Index = () => {
         colorTheme,
         fontSettings,
         spendingCategories,
+        insurancePolicies,
       });
     }
-  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories]);
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories, insurancePolicies]);
 
   const handlePaymentMade = (payment: PaymentLog) => {
     setBankBalance(payment.balanceAfter);
@@ -242,6 +246,7 @@ const Index = () => {
             bankBalance={bankBalance}
             emergencyFund={emergencyFund}
             expenses={expenses}
+            accounts={accounts}
           />
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -253,6 +258,10 @@ const Index = () => {
               <TabsTrigger value="expenses">
                 <ListChecks className="h-4 w-4 mr-2" />
                 Expenses
+              </TabsTrigger>
+              <TabsTrigger value="insurance">
+                <Shield className="h-4 w-4 mr-2" />
+                Insurance
               </TabsTrigger>
               <TabsTrigger value="wealth">
                 <PiggyBank className="h-4 w-4 mr-2" />
@@ -287,6 +296,13 @@ const Index = () => {
                 onExpensePaid={handleExpensePaid}
                 onExpenseAddedToCC={handleExpenseAddedToCC}
                 onExpenseRemoved={handleExpenseRemoved}
+              />
+            </TabsContent>
+
+            <TabsContent value="insurance">
+              <InsuranceSection 
+                policies={insurancePolicies}
+                onPoliciesChange={setInsurancePolicies}
               />
             </TabsContent>
 

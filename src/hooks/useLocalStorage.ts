@@ -14,6 +14,7 @@ interface StorageData {
   colorTheme: string;
   fontSettings: FontSettings;
   spendingCategories: { [key: string]: number };
+  insurancePolicies: any[];
 }
 
 export const useLocalStorage = () => {
