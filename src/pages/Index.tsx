@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,9 +14,7 @@ import { ExpensesSection } from "@/components/ExpensesSection";
 import { WealthCreationTab } from "@/components/WealthCreationTab";
 import { InsightsSection } from "@/components/InsightsSection";
 import { SmartTips } from "@/components/SmartTips";
-import { SettingsSection } from "@/components/SettingsSection";
 import { FontControls, FontSettings } from "@/components/FontControls";
-import { ColorSchemeToggle } from "@/components/ThemeToggle";
 import { Layout } from "@/components/Layout";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
@@ -40,6 +39,10 @@ export interface Expense {
   amount: number;
   isPaid: boolean;
   dueDate: string;
+  category: string;
+  date: string;
+  type: 'recurring' | 'one-time';
+  paymentMethod: string;
 }
 
 export interface PaymentLog {
@@ -67,7 +70,6 @@ const Index = () => {
   const [redoStack, setRedoStack] = useState<any[]>([]);
   const [colorTheme, setColorTheme] = useState("system");
   const [fontSettings, setFontSettings] = useState<FontSettings>({
-    fontFamily: "Inter",
     fontSize: "md",
   });
 
@@ -102,7 +104,7 @@ const Index = () => {
       setPaymentLogs(storedData.paymentLogs);
       setUndoStack(storedData.undoStack);
       setColorTheme(storedData.colorTheme || "system");
-      setFontSettings(storedData.fontSettings || { fontFamily: "Inter", fontSize: "md" });
+      setFontSettings(storedData.fontSettings || { fontSize: "md" });
     }
     setIsLoaded(true);
   }, []);
@@ -126,6 +128,24 @@ const Index = () => {
   const handlePaymentMade = (payment: PaymentLog) => {
     setBankBalance(payment.balanceAfter);
     setPaymentLogs([payment, ...paymentLogs]);
+  };
+
+  const handleExpensePaid = (amount: number) => {
+    setBankBalance(prev => prev - amount);
+  };
+
+  const handleExpenseAddedToCC = (accountId: string, amount: number) => {
+    setAccounts(prev => prev.map(acc => 
+      acc.id === accountId 
+        ? { ...acc, outstanding: acc.outstanding + amount }
+        : acc
+    ));
+  };
+
+  const handleExpenseRemoved = (expense: Expense) => {
+    if (expense.isPaid && expense.paymentMethod === 'bank') {
+      setBankBalance(prev => prev + expense.amount);
+    }
   };
 
   const handleUndo = () => {
@@ -195,14 +215,13 @@ const Index = () => {
   };
 
   return (
-    <Layout colorTheme={colorTheme} fontSettings={fontSettings}>
+    <Layout fontSettings={fontSettings}>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
-          <HeaderSection bankBalance={bankBalance} setBankBalance={setBankBalance} />
+          <HeaderSection />
           <QuickStatsSection
             bankBalance={bankBalance}
             emergencyFund={emergencyFund}
-            emergencyGoal={emergencyGoal}
             accounts={accounts}
             expenses={expenses}
           />
@@ -242,7 +261,15 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="expenses">
-              <ExpensesSection expenses={expenses} setExpenses={setExpenses} />
+              <ExpensesSection 
+                expenses={expenses} 
+                bankBalance={bankBalance}
+                accounts={accounts}
+                onExpensesChange={setExpenses}
+                onExpensePaid={handleExpensePaid}
+                onExpenseAddedToCC={handleExpenseAddedToCC}
+                onExpenseRemoved={handleExpenseRemoved}
+              />
             </TabsContent>
 
             <TabsContent value="wealth">
@@ -254,21 +281,46 @@ const Index = () => {
             </TabsContent>
 
             <TabsContent value="insights">
-              <InsightsSection accounts={accounts} expenses={expenses} paymentLogs={paymentLogs} />
+              <InsightsSection accounts={accounts} paymentLogs={paymentLogs} />
             </TabsContent>
 
             <TabsContent value="settings">
-              <SettingsSection
-                bankBalance={bankBalance}
-                setBankBalance={setBankBalance}
-                emergencyFund={emergencyFund}
-                setEmergencyFund={setEmergencyFund}
-                emergencyGoal={emergencyGoal}
-                setEmergencyGoal={setEmergencyGoal}
-                colorTheme={colorTheme}
-                setColorTheme={setColorTheme}
-              />
-              <FontControls fontSettings={fontSettings} setFontSettings={setFontSettings} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="bg-purple-800/30 border-purple-600/30 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-purple-200">Bank Balance</Label>
+                        <Input
+                          type="number"
+                          value={bankBalance}
+                          onChange={(e) => setBankBalance(Number(e.target.value))}
+                          className="bg-purple-800/50 border-purple-600 text-purple-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-purple-200">Emergency Fund</Label>
+                        <Input
+                          type="number"
+                          value={emergencyFund}
+                          onChange={(e) => setEmergencyFund(Number(e.target.value))}
+                          className="bg-purple-800/50 border-purple-600 text-purple-100"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-purple-200">Emergency Goal</Label>
+                        <Input
+                          type="number"
+                          value={emergencyGoal}
+                          onChange={(e) => setEmergencyGoal(Number(e.target.value))}
+                          className="bg-purple-800/50 border-purple-600 text-purple-100"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <FontControls fontSettings={fontSettings} />
             </TabsContent>
           </Tabs>
 
