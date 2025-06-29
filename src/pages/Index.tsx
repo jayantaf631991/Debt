@@ -219,6 +219,10 @@ const Index = () => {
     }
   };
 
+  // Calculate totals for overview
+  const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
+  const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
       <div className="max-w-6xl mx-auto p-4">
