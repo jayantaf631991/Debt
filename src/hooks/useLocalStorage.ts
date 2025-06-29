@@ -13,6 +13,7 @@ interface StorageData {
   undoStack: any[];
   colorTheme: string;
   fontSettings: FontSettings;
+  spendingCategories: { [key: string]: number };
 }
 
 export const useLocalStorage = () => {

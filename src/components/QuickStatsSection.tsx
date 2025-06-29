@@ -2,37 +2,27 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Banknote, CreditCard, Calendar, Shield } from "lucide-react";
-import { FontSettings } from "./FontControls";
+import { Expense } from "@/pages/Index";
 
 interface QuickStatsSectionProps {
   bankBalance: number;
-  totalOutstanding: number;
-  totalMinPayments: number;
   emergencyFund: number;
-  fontSettings: FontSettings;
+  expenses: Expense[];
 }
 
 export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
   bankBalance,
-  totalOutstanding,
-  totalMinPayments,
   emergencyFund,
-  fontSettings
+  expenses
 }) => {
-  const getFontClasses = () => {
-    const weightClass = fontSettings.weight === 'normal' ? 'font-normal' : 
-                       fontSettings.weight === 'medium' ? 'font-medium' :
-                       fontSettings.weight === 'semibold' ? 'font-semibold' : 'font-bold';
-    
-    const italicClass = fontSettings.italic ? 'italic' : '';
-    
-    return `${weightClass} ${italicClass}`;
-  };
-
-  const cardStyle = {
-    fontSize: `${fontSettings.size}px`,
-    fontFamily: fontSettings.family
-  };
+  // Calculate total outstanding and min payments from expenses
+  const totalOutstanding = expenses.reduce((sum, expense) => 
+    expense.isPaid ? sum : sum + expense.amount, 0
+  );
+  
+  const totalMinPayments = expenses
+    .filter(expense => !expense.isPaid)
+    .reduce((sum, expense) => sum + expense.amount, 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -40,16 +30,10 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p 
-                className={`text-gray-900 font-bold text-sm ${getFontClasses()}`}
-                style={cardStyle}
-              >
+              <p className="text-gray-900 font-bold text-sm">
                 Bank Balance
               </p>
-              <p 
-                className={`text-2xl font-bold text-black ${getFontClasses()}`}
-                style={{ ...cardStyle, fontSize: `${fontSettings.size * 1.5}px` }}
-              >
+              <p className="text-2xl font-bold text-black">
                 ₹{bankBalance.toLocaleString()}
               </p>
             </div>
@@ -62,16 +46,10 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p 
-                className={`text-gray-900 font-bold text-sm ${getFontClasses()}`}
-                style={cardStyle}
-              >
+              <p className="text-gray-900 font-bold text-sm">
                 Total Outstanding
               </p>
-              <p 
-                className={`text-2xl font-bold text-black ${getFontClasses()}`}
-                style={{ ...cardStyle, fontSize: `${fontSettings.size * 1.5}px` }}
-              >
+              <p className="text-2xl font-bold text-black">
                 ₹{totalOutstanding.toLocaleString()}
               </p>
             </div>
@@ -84,16 +62,10 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p 
-                className={`text-gray-900 font-bold text-sm ${getFontClasses()}`}
-                style={cardStyle}
-              >
+              <p className="text-gray-900 font-bold text-sm">
                 Min Payments Due
               </p>
-              <p 
-                className={`text-2xl font-bold text-black ${getFontClasses()}`}
-                style={{ ...cardStyle, fontSize: `${fontSettings.size * 1.5}px` }}
-              >
+              <p className="text-2xl font-bold text-black">
                 ₹{totalMinPayments.toLocaleString()}
               </p>
             </div>
@@ -106,16 +78,10 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p 
-                className={`text-gray-900 font-bold text-sm ${getFontClasses()}`}
-                style={cardStyle}
-              >
+              <p className="text-gray-900 font-bold text-sm">
                 Emergency Fund
               </p>
-              <p 
-                className={`text-2xl font-bold text-black ${getFontClasses()}`}
-                style={{ ...cardStyle, fontSize: `${fontSettings.size * 1.5}px` }}
-              >
+              <p className="text-2xl font-bold text-black">
                 ₹{emergencyFund.toLocaleString()}
               </p>
             </div>
