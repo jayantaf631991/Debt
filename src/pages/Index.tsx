@@ -3,13 +3,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BankSection } from "@/components/BankSection";
 import { AccountsSection } from "@/components/AccountsSection";
 import { ExpensesSection } from "@/components/ExpensesSection";
+import { StoragePathDisplay } from "@/components/StoragePathDisplay";
+import { AnalyticsTab } from "@/components/AnalyticsTab";
+import { ImportExportTab } from "@/components/ImportExportTab";
+import { IntegrationSettings } from "@/components/IntegrationSettings";
+import { DebtBurndownTab } from "@/components/DebtBurndownTab";
 import { 
   Home,
   PiggyBank,
   CreditCard,
-  Receipt
+  Receipt,
+  BarChart3,
+  History,
+  TrendingUp,
+  Upload,
+  Settings,
+  Calculator
 } from "lucide-react";
-import { toast } from "sonner";
 
 export interface Account {
   id: string;
@@ -48,53 +58,86 @@ export interface Expense {
   category: string;
 }
 
-// Simplified dummy data
+// Updated dummy data based on the screenshot
 const dummyAccounts: Account[] = [
   {
     id: '1',
-    name: 'Credit Card',
+    name: 'Axis Bank-Citi',
     type: 'credit-card',
-    outstanding: 25000,
-    minPayment: 1250,
-    interestRate: 24,
-    dueDate: '2025-01-15'
+    outstanding: 696000,
+    minPayment: 14010,
+    interestRate: 3.75,
+    dueDate: '2025-01-10'
   },
   {
-    id: '2',
-    name: 'Personal Loan',
+    id: '2', 
+    name: 'SBI_17',
+    type: 'credit-card',
+    outstanding: 56000,
+    minPayment: 1219,
+    interestRate: 3.89,
+    dueDate: '2025-01-13'
+  },
+  {
+    id: '3',
+    name: 'SBI_35',
+    type: 'credit-card', 
+    outstanding: 55000,
+    minPayment: 1240,
+    interestRate: 3.96,
+    dueDate: '2025-01-13'
+  },
+  {
+    id: '4',
+    name: 'ICICI',
+    type: 'credit-card',
+    outstanding: 69000,
+    minPayment: 1750,
+    interestRate: 3.32,
+    dueDate: '2025-01-17'
+  },
+  {
+    id: '5',
+    name: 'One Card',
+    type: 'credit-card',
+    outstanding: 2255546,
+    minPayment: 19253,
+    interestRate: 3.75,
+    dueDate: '2025-01-01'
+  },
+  {
+    id: '6',
+    name: 'Axis PL',
     type: 'loan',
-    outstanding: 100000,
-    minPayment: 5000,
-    interestRate: 12,
+    outstanding: 872970,
+    minPayment: 32969,
+    interestRate: 11.5,
     dueDate: '2025-01-05'
+  },
+  {
+    id: '7',
+    name: 'Aditya Birla',
+    type: 'loan',
+    outstanding: 452553,
+    minPayment: 19012,
+    interestRate: 12.49,
+    dueDate: '2025-01-06'
+  },
+  {
+    id: '8',
+    name: 'TATA',
+    type: 'loan',
+    outstanding: 356000,
+    minPayment: 14228,
+    interestRate: 11.25,
+    dueDate: '2025-01-07'
   }
 ];
 
-const dummyExpenses: Expense[] = [
-  {
-    id: 'e1',
-    name: 'Electricity Bill',
-    amount: 2000,
-    type: 'recurring',
-    paymentMethod: 'bank',
-    isPaid: true,
-    date: '2024-12-01T00:00:00Z',
-    category: 'utilities'
-  },
-  {
-    id: 'e2',
-    name: 'Groceries',
-    amount: 5000,
-    type: 'one-time',
-    paymentMethod: 'Credit Card',
-    isPaid: true,
-    date: '2024-12-15T00:00:00Z',
-    category: 'food'
-  }
-];
+const dummyExpenses: Expense[] = [];
 
 const Index = () => {
-  const [bankBalance, setBankBalance] = useState(50000);
+  const [bankBalance, setBankBalance] = useState(124101);
   const [accounts, setAccounts] = useState<Account[]>(dummyAccounts);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>(dummyExpenses);
@@ -161,48 +204,77 @@ const Index = () => {
     }
   };
 
+  const handleDataImport = (importedData: any) => {
+    if (importedData.accounts) {
+      setAccounts(prev => [...prev, ...importedData.accounts]);
+    }
+    if (importedData.expenses) {
+      setExpenses(prev => [...prev, ...importedData.expenses]);
+    }
+    if (importedData.paymentLogs) {
+      setPaymentLogs(prev => [...prev, ...importedData.paymentLogs]);
+    }
+    if (importedData.bankBalance !== undefined) {
+      setBankBalance(importedData.bankBalance);
+    }
+  };
+
   // Calculate totals for overview
   const totalOutstanding = accounts.reduce((sum, acc) => sum + acc.outstanding, 0);
   const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Financial Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+      <div className="max-w-6xl mx-auto p-4">
+        <StoragePathDisplay />
         
-        {/* Quick Overview */}
+        <h1 className="text-3xl font-bold text-purple-100 mb-6">Comprehensive Debt Management Dashboard</h1>
+        
+        {/* Quick Overview with updated styling */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm text-gray-600">Bank Balance</h3>
-            <p className="text-xl font-bold text-green-600">₹{bankBalance.toLocaleString()}</p>
+          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
+            <h3 className="text-sm text-purple-300">Bank Balance</h3>
+            <p className="text-xl font-bold text-green-400">₹{bankBalance.toLocaleString()}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm text-gray-600">Total Outstanding</h3>
-            <p className="text-xl font-bold text-red-600">₹{totalOutstanding.toLocaleString()}</p>
+          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
+            <h3 className="text-sm text-purple-300">Total Outstanding</h3>
+            <p className="text-xl font-bold text-red-400">₹{totalOutstanding.toLocaleString()}</p>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h3 className="text-sm text-gray-600">Min Payments Due</h3>
-            <p className="text-xl font-bold text-orange-600">₹{totalMinPayments.toLocaleString()}</p>
+          <div className="bg-purple-800/30 backdrop-blur-sm p-4 rounded-lg shadow border border-purple-600/50">
+            <h3 className="text-sm text-purple-300">Min Payments Due</h3>
+            <p className="text-xl font-bold text-orange-400">₹{totalMinPayments.toLocaleString()}</p>
           </div>
         </div>
 
         <Tabs defaultValue="bank" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-white border">
-            <TabsTrigger value="bank" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-7 bg-purple-800/50 border border-purple-600/50 backdrop-blur-sm">
+            <TabsTrigger value="bank" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <PiggyBank className="h-4 w-4" />
               Bank
             </TabsTrigger>
-            <TabsTrigger value="accounts" className="flex items-center gap-2">
+            <TabsTrigger value="accounts" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <CreditCard className="h-4 w-4" />
               Accounts
             </TabsTrigger>
-            <TabsTrigger value="expenses" className="flex items-center gap-2">
+            <TabsTrigger value="expenses" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
               <Receipt className="h-4 w-4" />
               Expenses
             </TabsTrigger>
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Home className="h-4 w-4" />
-              Overview
+            <TabsTrigger value="analytics" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="burndown" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
+              <Calculator className="h-4 w-4" />
+              Burndown
+            </TabsTrigger>
+            <TabsTrigger value="import-export" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
+              <Upload className="h-4 w-4" />
+              Import/Export
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2 text-purple-200 data-[state=active]:bg-purple-600/50">
+              <Settings className="h-4 w-4" />
+              Settings
             </TabsTrigger>
           </TabsList>
           
@@ -234,28 +306,55 @@ const Index = () => {
             />
           </TabsContent>
 
-          <TabsContent value="overview" className="mt-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-lg font-semibold mb-4">Financial Summary</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Available Balance:</span>
-                  <span className="font-medium">₹{bankBalance.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Debt:</span>
-                  <span className="font-medium text-red-600">₹{totalOutstanding.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Monthly Obligations:</span>
-                  <span className="font-medium">₹{totalMinPayments.toLocaleString()}</span>
-                </div>
-                <hr />
-                <div className="flex justify-between text-lg font-semibold">
-                  <span>Net Worth:</span>
-                  <span className={bankBalance - totalOutstanding >= 0 ? 'text-green-600' : 'text-red-600'}>
-                    ₹{(bankBalance - totalOutstanding).toLocaleString()}
-                  </span>
+          <TabsContent value="analytics" className="mt-6">
+            <AnalyticsTab 
+              accounts={accounts}
+              expenses={expenses}
+            />
+          </TabsContent>
+
+          <TabsContent value="burndown" className="mt-6">
+            <DebtBurndownTab 
+              accounts={accounts}
+            />
+          </TabsContent>
+
+          <TabsContent value="import-export" className="mt-6">
+            <ImportExportTab 
+              accounts={accounts}
+              expenses={expenses}
+              paymentLogs={paymentLogs}
+              bankBalance={bankBalance}
+              onDataImport={handleDataImport}
+            />
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <div className="space-y-6">
+              <IntegrationSettings />
+              
+              <div className="bg-purple-800/30 border-purple-600/50 backdrop-blur-sm p-6 rounded-lg">
+                <h2 className="text-lg font-semibold mb-4 text-purple-100">Financial Summary</h2>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-purple-200">Available Balance:</span>
+                    <span className="font-medium text-purple-100">₹{bankBalance.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-200">Total Debt:</span>
+                    <span className="font-medium text-red-400">₹{totalOutstanding.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-200">Monthly Obligations:</span>
+                    <span className="font-medium text-purple-100">₹{totalMinPayments.toLocaleString()}</span>
+                  </div>
+                  <hr className="border-purple-600/50" />
+                  <div className="flex justify-between text-lg font-semibold">
+                    <span className="text-purple-200">Net Worth:</span>
+                    <span className={bankBalance - totalOutstanding >= 0 ? 'text-green-400' : 'text-red-400'}>
+                      ₹{(bankBalance - totalOutstanding).toLocaleString()}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
