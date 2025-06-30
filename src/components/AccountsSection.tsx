@@ -36,7 +36,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     outstanding: '',
     minPayment: '',
     interestRate: '',
-    dueDate: ''
+    dueDate: '',
+    creditLimit: '' // Add credit limit field
   });
 
   // Calculate available amount after all EMIs and expenses
@@ -57,7 +58,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
       outstanding: parseFloat(newAccount.outstanding),
       minPayment: parseFloat(newAccount.minPayment),
       interestRate: parseFloat(newAccount.interestRate) || 0,
-      dueDate: newAccount.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      dueDate: newAccount.dueDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      creditLimit: parseFloat(newAccount.creditLimit) || undefined
     };
 
     onAccountsChange([...accounts, account]);
@@ -67,7 +69,8 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
       outstanding: '',
       minPayment: '',
       interestRate: '',
-      dueDate: ''
+      dueDate: '',
+      creditLimit: ''
     });
     setIsAddDialogOpen(false);
     toast.success("Account added successfully!");
@@ -473,6 +476,16 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                   />
                 </div>
                 <div>
+                  <Label className="text-purple-200">Credit Limit (Optional)</Label>
+                  <Input
+                    type="number"
+                    value={newAccount.creditLimit}
+                    onChange={(e) => setNewAccount({...newAccount, creditLimit: e.target.value})}
+                    className="bg-purple-800/50 border-purple-600 text-purple-100"
+                    placeholder="100000"
+                  />
+                </div>
+                <div>
                   <Label className="text-purple-200">Due Date</Label>
                   <Input
                     type="date"
@@ -508,12 +521,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
         {accounts.map((account) => (
           <Card key={account.id} className="bg-purple-700/30 border-purple-500/30">
             <CardContent className="p-4">
-              
-              
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-purple-100 flex items-center gap-2">
-                    {account.name}
+                    {renderEditableField(account, 'name', account.name)}
                     <Badge variant={account.type === 'credit-card' ? 'default' : 'secondary'}>
                       {account.type === 'credit-card' ? 'Card' : 'Loan'}
                     </Badge>
@@ -541,9 +552,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </Button>
               </div>
 
-              
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                 <div>
                   <p className="text-purple-300 text-sm">Outstanding</p>
                   <div className="text-lg font-bold text-red-300">
@@ -563,6 +572,17 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                   </div>
                 </div>
                 <div>
+                  <p className="text-purple-300 text-sm">Credit Limit</p>
+                  <div className="text-lg font-bold text-blue-300">
+                    {renderEditableField(account, 'creditLimit', account.creditLimit ? `₹${account.creditLimit.toLocaleString()}` : 'Not set', true)}
+                  </div>
+                  {account.creditLimit && (
+                    <p className="text-xs text-purple-400">
+                      Available: ₹{(account.creditLimit - account.outstanding).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+                <div>
                   <p className="text-purple-300 text-sm">Last Payment</p>
                   <p className="text-sm text-purple-200">
                     {account.lastPayment 
@@ -573,8 +593,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </div>
               </div>
 
-              
-
+              {/* Payment buttons and dynamic calculator - keep existing code */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {account.type === 'credit-card' ? (
                   <>

@@ -29,6 +29,7 @@ export interface Account {
   minPayment: number;
   interestRate: number;
   dueDate: string;
+  creditLimit?: number; // New field for credit limit
   lastPayment?: {
     amount: number;
     date: string;
