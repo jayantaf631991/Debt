@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield } from "lucide-react";
+import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
 import { QuickStatsSection } from "@/components/QuickStatsSection";
 import { AccountsSection } from "@/components/AccountsSection";
@@ -17,6 +17,9 @@ import { FontControls, FontSettings } from "@/components/FontControls";
 import { Layout } from "@/components/Layout";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection";
+import { ImportExportTab } from "@/components/ImportExportTab";
+import { StoragePathDisplay } from "@/components/StoragePathDisplay";
+import { DataManager } from "@/components/DataManager";
 
 export interface Account {
   id: string;
@@ -204,7 +207,6 @@ const Index = () => {
         {
           bankBalance,
           emergencyFund,
-          emergencyGoal,
           accounts,
           expenses,
           paymentLogs,
@@ -230,10 +232,75 @@ const Index = () => {
     }
   };
 
+  const handleDataImport = (importedData: any) => {
+    if (importedData.accounts) setAccounts(importedData.accounts);
+    if (importedData.expenses) setExpenses([...expenses, ...importedData.expenses]);
+    if (importedData.paymentLogs) setPaymentLogs([...paymentLogs, ...importedData.paymentLogs]);
+    if (importedData.bankBalance) setBankBalance(importedData.bankBalance);
+  };
+
+  const handleExportData = () => {
+    const exportData = {
+      version: "1.0",
+      timestamp: new Date().toISOString(),
+      data: {
+        bankBalance,
+        emergencyFund,
+        emergencyGoal,
+        accounts,
+        expenses,
+        paymentLogs,
+        colorTheme,
+        fontSettings,
+        spendingCategories,
+        insurancePolicies,
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debt-dashboard-complete-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export successful",
+      description: "Dashboard data exported successfully!",
+    });
+  };
+
+  const handleQuitApp = () => {
+    // Save all data before quitting
+    saveData({
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      undoStack,
+      colorTheme,
+      fontSettings,
+      spendingCategories,
+      insurancePolicies,
+    });
+    
+    toast({
+      title: "Data saved",
+      description: "All data has been saved successfully. You can safely close the application.",
+    });
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
+          <StoragePathDisplay />
+          
           <HeaderSection 
             undoStack={undoStack}
             redoStack={redoStack}
@@ -274,6 +341,10 @@ const Index = () => {
               <TabsTrigger value="settings">
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
+              </TabsTrigger>
+              <TabsTrigger value="data">
+                <Download className="h-4 w-4 mr-2" />
+                Import/Export
               </TabsTrigger>
             </TabsList>
 
@@ -362,6 +433,23 @@ const Index = () => {
                 fontSettings={fontSettings} 
                 onFontChange={setFontSettings}
               />
+            </TabsContent>
+
+            <TabsContent value="data">
+              <div className="space-y-6">
+                <ImportExportTab
+                  accounts={accounts}
+                  expenses={expenses}
+                  paymentLogs={paymentLogs}
+                  bankBalance={bankBalance}
+                  onDataImport={handleDataImport}
+                />
+                <DataManager
+                  onExportData={handleExportData}
+                  onImportData={handleDataImport}
+                  onQuitApp={handleQuitApp}
+                />
+              </div>
             </TabsContent>
           </Tabs>
 
