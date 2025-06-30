@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Banknote, CreditCard, Calendar, Shield, TrendingDown } from "lucide-react";
+import { Banknote, CreditCard, Calendar, Shield, TrendingDown, Calculator } from "lucide-react";
 import { Expense, Account } from "@/pages/Index";
 
 interface QuickStatsSectionProps {
@@ -19,15 +19,22 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
 }) => {
   // Calculate totals from accounts
   const totalOutstanding = accounts.reduce((sum, account) => sum + account.outstanding, 0);
-  const totalMinPayments = accounts.reduce((sum, account) => sum + account.minPayment, 0);
   
-  // Calculate total EMI (assuming EMI is the minPayment for loan accounts)
+  // Calculate minimum payments for credit cards only
+  const totalCCMinPayments = accounts
+    .filter(account => account.type === 'credit-card')
+    .reduce((sum, account) => sum + account.minPayment, 0);
+  
+  // Calculate EMI for loans only
   const totalEMI = accounts
     .filter(account => account.type === 'loan')
     .reduce((sum, account) => sum + account.minPayment, 0);
 
-  // Calculate expected balance after minimum payments
-  const expectedBalance = bankBalance - totalMinPayments;
+  // Calculate total dues (CC min payments + loan EMIs)
+  const totalDues = totalCCMinPayments + totalEMI;
+
+  // Calculate expected balance after total dues
+  const expectedBalance = bankBalance - totalDues;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
@@ -68,13 +75,13 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-900 font-bold text-sm">
-                Min Payments Due
+                CC Min Payments
               </p>
               <p className="text-2xl font-bold text-black">
-                ₹{totalMinPayments.toLocaleString()}
+                ₹{totalCCMinPayments.toLocaleString()}
               </p>
             </div>
-            <Calendar className="h-8 w-8 text-blue-800" />
+            <CreditCard className="h-8 w-8 text-blue-800" />
           </div>
         </CardContent>
       </Card>
@@ -100,13 +107,13 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-900 font-bold text-sm">
-                Emergency Fund
+                Total Dues
               </p>
               <p className="text-2xl font-bold text-black">
-                ₹{emergencyFund.toLocaleString()}
+                ₹{totalDues.toLocaleString()}
               </p>
             </div>
-            <Shield className="h-8 w-8 text-purple-800" />
+            <Calculator className="h-8 w-8 text-purple-800" />
           </div>
         </CardContent>
       </Card>
