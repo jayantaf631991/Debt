@@ -159,22 +159,26 @@ const Index = () => {
     loadStoredData();
   }, []);
 
-  // Auto-save effect - only runs when auto-save is enabled
+  // FIXED Auto-save effect - now properly respects the toggle
   useEffect(() => {
     if (isLoaded && autoSaveEnabled) {
-      saveData({
-        bankBalance,
-        emergencyFund,
-        emergencyGoal,
-        accounts,
-        expenses,
-        paymentLogs,
-        undoStack,
-        colorTheme,
-        fontSettings,
-        spendingCategories,
-        insurancePolicies,
-      });
+      const timeoutId = setTimeout(() => {
+        saveData({
+          bankBalance,
+          emergencyFund,
+          emergencyGoal,
+          accounts,
+          expenses,
+          paymentLogs,
+          undoStack,
+          colorTheme,
+          fontSettings,
+          spendingCategories,
+          insurancePolicies,
+        });
+      }, 1000); // Debounce saves by 1 second
+
+      return () => clearTimeout(timeoutId);
     }
   }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories, insurancePolicies, autoSaveEnabled]);
 

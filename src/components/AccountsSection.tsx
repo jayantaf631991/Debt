@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Plus, Trash2, Calendar, TrendingUp, AlertTriangle, Edit2, Check, X, Calculator, DollarSign } from "lucide-react";
+import { CreditCard, Plus, Trash2, AlertTriangle, Edit2, Check, X, Calculator, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { Account, PaymentLog, Expense } from "@/pages/Index";
 
@@ -37,7 +37,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     minPayment: '',
     interestRate: '',
     dueDate: '',
-    creditLimit: '' // Add credit limit field
+    creditLimit: ''
   });
 
   // Calculate available amount after all EMIs and expenses
@@ -87,10 +87,27 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
 
     const updatedAccounts = accounts.map(acc => {
       if (acc.id === accountId) {
-        return {
-          ...acc,
-          [field]: field === 'name' ? newValue : parseFloat(newValue)
-        };
+        let updatedAcc = { ...acc };
+        
+        if (field === 'type') {
+          // When type changes, recalculate payment labels and logic
+          updatedAcc.type = newValue as 'credit-card' | 'loan';
+          
+          // Adjust minimum payment if switching types
+          if (newValue === 'loan' && acc.type === 'credit-card') {
+            // Converting CC to loan - set a typical EMI
+            updatedAcc.minPayment = Math.max(acc.minPayment, acc.outstanding * 0.02); // 2% of outstanding as EMI
+          } else if (newValue === 'credit-card' && acc.type === 'loan') {
+            // Converting loan to CC - set minimum payment as 5% of outstanding
+            updatedAcc.minPayment = Math.max(500, acc.outstanding * 0.05);
+          }
+        } else if (field === 'name') {
+          updatedAcc[field] = newValue;
+        } else {
+          updatedAcc[field] = parseFloat(newValue);
+        }
+        
+        return updatedAcc;
       }
       return acc;
     });
@@ -359,41 +376,74 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     );
   };
 
-  const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false) => {
+  const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false, isSelect = false) => {
     const isEditing = editingField?.accountId === account.id && editingField?.field === field;
     
     if (isEditing) {
-      return (
-        <div className="flex items-center gap-2">
-          <Input
-            type={isNumeric ? "number" : "text"}
-            value={editValues[`${account.id}-${field}`] || ''}
-            onChange={(e) => setEditValues({...editValues, [`${account.id}-${field}`]: e.target.value})}
-            className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8"
-            autoFocus
-          />
-          <Button
-            size="sm"
-            onClick={() => handleFieldSave(account.id, field)}
-            className="bg-green-600 hover:bg-green-500 text-white h-8 w-8 p-0"
-          >
-            <Check className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleFieldCancel}
-            className="bg-red-600 hover:bg-red-500 text-white h-8 w-8 p-0"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      );
+      if (isSelect && field === 'type') {
+        return (
+          <div className="flex items-center gap-2">
+            <Select 
+              value={editValues[`${account.id}-${field}`] || account.type}
+              onValueChange={(value) => setEditValues({...editValues, [`${account.id}-${field}`]: value})}
+            >
+              <SelectTrigger className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-purple-800 border-purple-600">
+                <SelectItem value="credit-card">Credit Card</SelectItem>
+                <SelectItem value="loan">Loan</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              onClick={() => handleFieldSave(account.id, field)}
+              className="bg-green-600 hover:bg-green-500 text-white h-8 w-8 p-0"
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleFieldCancel}
+              className="bg-red-600 hover:bg-red-500 text-white h-8 w-8 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      } else {
+        return (
+          <div className="flex items-center gap-2">
+            <Input
+              type={isNumeric ? "number" : "text"}
+              value={editValues[`${account.id}-${field}`] || ''}
+              onChange={(e) => setEditValues({...editValues, [`${account.id}-${field}`]: e.target.value})}
+              className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8"
+              autoFocus
+            />
+            <Button
+              size="sm"
+              onClick={() => handleFieldSave(account.id, field)}
+              className="bg-green-600 hover:bg-green-500 text-white h-8 w-8 p-0"
+            >
+              <Check className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleFieldCancel}
+              className="bg-red-600 hover:bg-red-500 text-white h-8 w-8 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      }
     }
 
     return (
       <div 
         className="flex items-center gap-2 cursor-pointer hover:bg-purple-600/20 p-1 rounded group"
-        onClick={() => handleFieldEdit(account.id, field, displayValue)}
+        onClick={() => handleFieldEdit(account.id, field, field === 'type' ? account.type : displayValue)}
       >
         <span>{displayValue}</span>
         <Edit2 className="h-3 w-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -525,9 +575,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 <div>
                   <h3 className="font-semibold text-purple-100 flex items-center gap-2">
                     {renderEditableField(account, 'name', account.name)}
-                    <Badge variant={account.type === 'credit-card' ? 'default' : 'secondary'}>
-                      {account.type === 'credit-card' ? 'Card' : 'Loan'}
-                    </Badge>
+                    {renderEditableField(account, 'type', account.type === 'credit-card' ? 'Card' : 'Loan', false, true)}
                     {account.interestRate > 20 && (
                       <Badge variant="destructive" className="flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" />
@@ -560,7 +608,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                   </div>
                 </div>
                 <div>
-                  <p className="text-purple-300 text-sm">Min Payment</p>
+                  <p className="text-purple-300 text-sm">{account.type === 'credit-card' ? 'Min Payment' : 'EMI'}</p>
                   <div className="text-lg font-bold text-yellow-300">
                     {renderEditableField(account, 'minPayment', `₹${account.minPayment.toLocaleString()}`, true)}
                   </div>
@@ -593,7 +641,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
                 </div>
               </div>
 
-              {/* Payment buttons and dynamic calculator - keep existing code */}
+              {/* Payment buttons */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {account.type === 'credit-card' ? (
                   <>
