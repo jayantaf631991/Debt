@@ -20,6 +20,7 @@ import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection
 import { ImportExportTab } from "@/components/ImportExportTab";
 import { StoragePathDisplay } from "@/components/StoragePathDisplay";
 import { DataManager } from "@/components/DataManager";
+import { useFileStorage } from "@/hooks/useFileStorage";
 
 export interface Account {
   id: string;
@@ -62,7 +63,7 @@ export interface PaymentLog {
 
 const Index = () => {
   const { toast } = useToast();
-  const { loadData, saveData, isLoaded, setIsLoaded } = useLocalStorage();
+  const { loadData, saveData, isLoaded, setIsLoaded, serverConnected } = useFileStorage('debt-tool');
   const [bankBalance, setBankBalance] = useState(50000);
   const [emergencyFund, setEmergencyFund] = useState(10000);
   const [emergencyGoal, setEmergencyGoal] = useState(25000);
@@ -296,11 +297,38 @@ const Index = () => {
     });
   };
 
+  const handleManualSave = async () => {
+    await saveData({
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      undoStack,
+      colorTheme,
+      fontSettings,
+      spendingCategories,
+      insurancePolicies,
+    });
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
           <StoragePathDisplay />
+          
+          {/* Server Status and Manual Save */}
+          <div className="flex justify-between items-center">
+            <Badge variant={serverConnected ? "default" : "destructive"}>
+              {serverConnected ? "Server Connected" : "Server Disconnected"}
+            </Badge>
+            <Button onClick={handleManualSave} className="bg-green-600 hover:bg-green-500">
+              <Download className="h-4 w-4 mr-2" />
+              Save Data
+            </Button>
+          </div>
           
           <HeaderSection 
             undoStack={undoStack}
