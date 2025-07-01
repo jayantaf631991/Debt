@@ -20,9 +20,9 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
   // Calculate totals from accounts
   const totalOutstanding = accounts.reduce((sum, account) => sum + account.outstanding, 0);
   
-  // Calculate minimum payments for credit cards only
+  // Calculate minimum payments for credit cards (handle both 'credit-card' and 'card' types)
   const totalCCMinPayments = accounts
-    .filter(account => account.type === 'credit-card')
+    .filter(account => account.type === 'credit-card' || account.type === 'card')
     .reduce((sum, account) => sum + account.minPayment, 0);
   
   // Calculate EMI for loans only
@@ -36,9 +36,13 @@ export const QuickStatsSection: React.FC<QuickStatsSectionProps> = ({
   // Calculate expected balance after total dues
   const expectedBalance = bankBalance - totalDues;
 
-  // Calculate credit limit totals
-  const totalCreditLimit = accounts.reduce((sum, account) => sum + (account.creditLimit || 0), 0);
-  const totalLimitExhausted = accounts.reduce((sum, account) => sum + account.outstanding, 0);
+  // Calculate credit limit totals (for credit cards only)
+  const totalCreditLimit = accounts
+    .filter(account => account.type === 'credit-card' || account.type === 'card')
+    .reduce((sum, account) => sum + (account.creditLimit || 0), 0);
+  const totalLimitExhausted = accounts
+    .filter(account => account.type === 'credit-card' || account.type === 'card')
+    .reduce((sum, account) => sum + account.outstanding, 0);
   const totalLimitAvailable = totalCreditLimit - totalLimitExhausted;
 
   return (
