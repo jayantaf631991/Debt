@@ -26,7 +26,7 @@ import { AutoBackupSettings } from "@/components/AutoBackupSettings";
 export interface Account {
   id: string;
   name: string;
-  type: 'credit-card' | 'loan';
+  type: 'credit-card' | 'card' | 'loan';
   outstanding: number;
   minPayment: number;
   interestRate: number;
