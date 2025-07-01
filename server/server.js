@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -6,7 +5,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 const app = express();
-const PORT = 3001;
+const PORT = 1234;
 
 // Base directory for storing data
 const BASE_DIR = 'D:\\Lovable apps\\Debt tool\\debt-wizard-navigator';

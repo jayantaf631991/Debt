@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from "sonner";
 import { FontSettings } from "@/components/FontControls";
@@ -17,7 +16,7 @@ interface StorageData {
   insurancePolicies: any[];
 }
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = 'http://localhost:1234';
 
 export const useFileStorage = (dashboardName: string = 'debt-dashboard') => {
   const [isLoaded, setIsLoaded] = useState(false);
