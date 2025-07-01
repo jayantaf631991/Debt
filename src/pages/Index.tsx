@@ -15,7 +15,7 @@ import { InsightsSection } from "@/components/InsightsSection";
 import { SmartTips } from "@/components/SmartTips";
 import { FontControls, FontSettings } from "@/components/FontControls";
 import { Layout } from "@/components/Layout";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useFileStorage } from "@/hooks/useFileStorage";
 import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection";
 import { ImportExportTab } from "@/components/ImportExportTab";
 import { StoragePathDisplay } from "@/components/StoragePathDisplay";
@@ -62,7 +62,7 @@ export interface PaymentLog {
 
 const Index = () => {
   const { toast } = useToast();
-  const { loadData, saveData, isLoaded, setIsLoaded } = useLocalStorage();
+  const { loadData, saveData, isLoaded, setIsLoaded } = useFileStorage('debt-dashboard');
   const [bankBalance, setBankBalance] = useState(50000);
   const [emergencyFund, setEmergencyFund] = useState(10000);
   const [emergencyGoal, setEmergencyGoal] = useState(25000);
@@ -104,27 +104,31 @@ const Index = () => {
   }, [fontSettings]);
 
   useEffect(() => {
-    const storedData = loadData();
-    if (storedData) {
-      setBankBalance(storedData.bankBalance);
-      setEmergencyFund(storedData.emergencyFund);
-      setEmergencyGoal(storedData.emergencyGoal);
-      setAccounts(storedData.accounts);
-      setExpenses(storedData.expenses);
-      setPaymentLogs(storedData.paymentLogs);
-      setUndoStack(storedData.undoStack);
-      setColorTheme(storedData.colorTheme || "system");
-      setFontSettings(storedData.fontSettings || {
-        size: 16,
-        family: 'Inter',
-        weight: 'normal',
-        color: 'white',
-        italic: false,
-      });
-      setSpendingCategories(storedData.spendingCategories || {});
-      setInsurancePolicies(storedData.insurancePolicies || []);
-    }
-    setIsLoaded(true);
+    const loadStoredData = async () => {
+      const storedData = await loadData();
+      if (storedData) {
+        setBankBalance(storedData.bankBalance || 50000);
+        setEmergencyFund(storedData.emergencyFund || 10000);
+        setEmergencyGoal(storedData.emergencyGoal || 25000);
+        setAccounts(storedData.accounts || []);
+        setExpenses(storedData.expenses || []);
+        setPaymentLogs(storedData.paymentLogs || []);
+        setUndoStack(storedData.undoStack || []);
+        setColorTheme(storedData.colorTheme || "system");
+        setFontSettings(storedData.fontSettings || {
+          size: 16,
+          family: 'Inter',
+          weight: 'normal',
+          color: 'white',
+          italic: false,
+        });
+        setSpendingCategories(storedData.spendingCategories || {});
+        setInsurancePolicies(storedData.insurancePolicies || []);
+      }
+      setIsLoaded(true);
+    };
+
+    loadStoredData();
   }, []);
 
   useEffect(() => {
