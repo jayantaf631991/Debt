@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download, Save } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
 import { QuickStatsSection } from "@/components/QuickStatsSection";
 import { AccountsSection } from "@/components/AccountsSection";
@@ -31,7 +32,7 @@ export interface Account {
   minPayment: number;
   interestRate: number;
   dueDate: string;
-  creditLimit?: number; // New field for credit limit
+  creditLimit?: number;
   lastPayment?: {
     amount: number;
     date: string;
@@ -85,6 +86,7 @@ const Index = () => {
   const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({});
   const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
   const [backupFolder, setBackupFolder] = useState('D:\\DebtDashboardBackups');
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
 
   // Initialize auto backup
   const { createManualBackup, getNextBackupTime } = useAutoBackup({
@@ -147,13 +149,18 @@ const Index = () => {
         setInsurancePolicies(storedData.insurancePolicies || []);
       }
       setIsLoaded(true);
+      
+      // Load auto-save preference
+      const autoSavePref = localStorage.getItem('autoSaveEnabled');
+      setAutoSaveEnabled(autoSavePref === 'true');
     };
 
     loadStoredData();
   }, []);
 
+  // Auto-save effect - only runs when auto-save is enabled
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && autoSaveEnabled) {
       saveData({
         bankBalance,
         emergencyFund,
@@ -168,7 +175,84 @@ const Index = () => {
         insurancePolicies,
       });
     }
-  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories, insurancePolicies]);
+  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories, insurancePolicies, autoSaveEnabled]);
+
+  const handleManualSave = () => {
+    // Save to localStorage
+    saveData({
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      undoStack,
+      colorTheme,
+      fontSettings,
+      spendingCategories,
+      insurancePolicies,
+    });
+
+    // Export to file
+    const exportData = {
+      version: "1.0",
+      timestamp: new Date().toISOString(),
+      data: {
+        bankBalance,
+        emergencyFund,
+        emergencyGoal,
+        accounts,
+        expenses,
+        paymentLogs,
+        colorTheme,
+        fontSettings,
+        spendingCategories,
+        insurancePolicies,
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debt-dashboard-save-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Data saved successfully!",
+      description: "Data saved to browser and exported to file.",
+    });
+  };
+
+  const handleAutoSaveToggle = (enabled: boolean) => {
+    setAutoSaveEnabled(enabled);
+    localStorage.setItem('autoSaveEnabled', enabled.toString());
+    
+    if (enabled) {
+      // Save immediately when auto-save is enabled
+      saveData({
+        bankBalance,
+        emergencyFund,
+        emergencyGoal,
+        accounts,
+        expenses,
+        paymentLogs,
+        undoStack,
+        colorTheme,
+        fontSettings,
+        spendingCategories,
+        insurancePolicies,
+      });
+    }
+    
+    toast({
+      title: enabled ? "Auto-save enabled" : "Auto-save disabled",
+      description: enabled ? "Changes will be saved automatically." : "Use the Save button to save changes.",
+    });
+  };
 
   const handlePaymentMade = (payment: PaymentLog) => {
     setBankBalance(payment.balanceAfter);
@@ -327,6 +411,17 @@ const Index = () => {
         <div className="container mx-auto p-6 space-y-6">
           <StoragePathDisplay />
           
+          {/* Manual Save Button */}
+          <div className="flex justify-center">
+            <Button 
+              onClick={handleManualSave}
+              className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white px-8 py-3 text-lg font-semibold shadow-lg"
+            >
+              <Save className="h-5 w-5 mr-2" />
+              Save Data & Export
+            </Button>
+          </div>
+          
           <HeaderSection 
             undoStack={undoStack}
             redoStack={redoStack}
@@ -450,6 +545,34 @@ const Index = () => {
                           onChange={(e) => setEmergencyGoal(Number(e.target.value))}
                           className="bg-purple-800/50 border-purple-600 text-purple-100"
                         />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-green-800/30 border-green-600/30 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-green-200 text-lg font-semibold">Auto-Save</Label>
+                          <p className="text-green-300 text-sm mt-1">
+                            Automatically save changes as you make them
+                          </p>
+                        </div>
+                        <Switch
+                          checked={autoSaveEnabled}
+                          onCheckedChange={handleAutoSaveToggle}
+                          className="data-[state=checked]:bg-green-600"
+                        />
+                      </div>
+                      <div className="bg-green-900/50 p-3 rounded-lg">
+                        <p className="text-green-200 text-sm">
+                          {autoSaveEnabled 
+                            ? "✅ Auto-save is ON - Changes are saved automatically"
+                            : "❌ Auto-save is OFF - Use the Save button to save changes"
+                          }
+                        </p>
                       </div>
                     </div>
                   </CardContent>
