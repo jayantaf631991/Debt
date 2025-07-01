@@ -20,6 +20,8 @@ import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection
 import { ImportExportTab } from "@/components/ImportExportTab";
 import { StoragePathDisplay } from "@/components/StoragePathDisplay";
 import { DataManager } from "@/components/DataManager";
+import { useAutoBackup } from "@/hooks/useAutoBackup";
+import { AutoBackupSettings } from "@/components/AutoBackupSettings";
 
 export interface Account {
   id: string;
@@ -82,6 +84,25 @@ const Index = () => {
   });
   const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({});
   const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
+  const [backupFolder, setBackupFolder] = useState('D:\\DebtDashboardBackups');
+
+  // Initialize auto backup
+  const { createManualBackup, getNextBackupTime } = useAutoBackup({
+    data: {
+      bankBalance,
+      emergencyFund,
+      emergencyGoal,
+      accounts,
+      expenses,
+      paymentLogs,
+      undoStack,
+      colorTheme,
+      fontSettings,
+      spendingCategories,
+      insurancePolicies,
+    },
+    backupFolder
+  });
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("debtDashboardTheme") || "system";
@@ -437,6 +458,11 @@ const Index = () => {
               <FontControls 
                 fontSettings={fontSettings} 
                 onFontChange={setFontSettings}
+              />
+              <AutoBackupSettings
+                onBackupFolderChange={setBackupFolder}
+                onManualBackup={createManualBackup}
+                getNextBackupTime={getNextBackupTime}
               />
             </TabsContent>
 
