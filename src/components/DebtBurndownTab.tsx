@@ -20,7 +20,7 @@ interface DebtScenario {
   outstanding: number;
   minPayment: number;
   interestRate: number;
-  type: 'credit-card' | 'loan';
+  type: 'credit-card' | 'card' | 'loan';
   paidAmount: number;
   include: boolean;
 }
