@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from "sonner";
 import { FontSettings } from "@/components/FontControls";
@@ -16,68 +17,33 @@ interface StorageData {
   insurancePolicies: any[];
 }
 
-const SERVER_URL = 'http://localhost:1234';
-
 export const useFileStorage = (dashboardName: string = 'debt-dashboard') => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const loadData = async (): Promise<StorageData | null> => {
     try {
-      const response = await fetch(`${SERVER_URL}/api/load-data/${dashboardName}`);
-      if (!response.ok) {
-        throw new Error('Failed to load data');
-      }
-      const data = await response.json();
-      
-      if (Object.keys(data).length > 0) {
-        toast.success("Data loaded successfully from file!");
+      const savedData = localStorage.getItem('debtDashboardData');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        toast.success("Data loaded from browser storage!");
         return data;
       }
       return null;
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error("Error loading data from file. Using localStorage as fallback.");
-      
-      // Fallback to localStorage
-      const savedData = localStorage.getItem('debtDashboardData');
-      if (savedData) {
-        try {
-          return JSON.parse(savedData);
-        } catch (e) {
-          console.error('Error parsing localStorage data:', e);
-        }
-      }
+      toast.error("Error loading data from browser storage.");
       return null;
     }
   };
 
   const saveData = async (data: StorageData) => {
     try {
-      const response = await fetch(`${SERVER_URL}/api/save-data/${dashboardName}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save data');
-      }
-
-      // Also save to localStorage as backup
       localStorage.setItem('debtDashboardData', JSON.stringify(data));
+      // Uncomment the line below if you want confirmation toasts
+      // toast.success("Data saved to browser storage!");
     } catch (error) {
-      console.error('Error saving data to file:', error);
-      toast.error("Error saving data to file. Saved to browser storage instead.");
-      
-      // Fallback to localStorage
-      try {
-        localStorage.setItem('debtDashboardData', JSON.stringify(data));
-      } catch (e) {
-        console.error('Error saving to localStorage:', e);
-        toast.error("Error saving data");
-      }
+      console.error('Error saving to localStorage:', error);
+      toast.error("Error saving data to browser storage.");
     }
   };
 
