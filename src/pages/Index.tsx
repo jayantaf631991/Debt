@@ -23,6 +23,7 @@ import { StoragePathDisplay } from "@/components/StoragePathDisplay";
 import { DataManager } from "@/components/DataManager";
 import { useAutoBackup } from "@/hooks/useAutoBackup";
 import { AutoBackupSettings } from "@/components/AutoBackupSettings";
+import { BulkDataUpload } from "@/components/BulkDataUpload";
 
 export interface Account {
   id: string;
@@ -405,6 +406,10 @@ const Index = () => {
     });
   };
 
+  const handleBulkAccountsImport = (newAccounts: Account[]) => {
+    setAccounts(prevAccounts => [...prevAccounts, ...newAccounts]);
+  };
+
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -421,6 +426,9 @@ const Index = () => {
               Save Data & Export
             </Button>
           </div>
+
+          {/* Add Bulk Data Upload Component */}
+          <BulkDataUpload onAccountsImport={handleBulkAccountsImport} />
           
           <HeaderSection 
             undoStack={undoStack}
