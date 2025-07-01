@@ -86,6 +86,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     if (!newValue) return;
 
     const updatedAccounts = accounts.map(acc => {
+      // Only update the specific account being edited
       if (acc.id === accountId) {
         let updatedAcc = { ...acc };
         
@@ -109,6 +110,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
         
         return updatedAcc;
       }
+      // Return other accounts unchanged
       return acc;
     });
 
