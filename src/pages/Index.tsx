@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
@@ -105,28 +106,32 @@ const Index = () => {
   }, [fontSettings]);
 
   useEffect(() => {
-    const storedData = loadData();
-    if (storedData) {
-      setBankBalance(storedData.bankBalance);
-      setEmergencyFund(storedData.emergencyFund);
-      setEmergencyGoal(storedData.emergencyGoal);
-      setAccounts(storedData.accounts);
-      setExpenses(storedData.expenses);
-      setPaymentLogs(storedData.paymentLogs);
-      setUndoStack(storedData.undoStack);
-      setColorTheme(storedData.colorTheme || "system");
-      setFontSettings(storedData.fontSettings || {
-        size: 16,
-        family: 'Inter',
-        weight: 'normal',
-        color: 'white',
-        italic: false,
-      });
-      setSpendingCategories(storedData.spendingCategories || {});
-      setInsurancePolicies(storedData.insurancePolicies || []);
-    }
-    setIsLoaded(true);
-  }, []);
+    const loadStoredData = async () => {
+      const storedData = await loadData();
+      if (storedData) {
+        setBankBalance(storedData.bankBalance || 50000);
+        setEmergencyFund(storedData.emergencyFund || 10000);
+        setEmergencyGoal(storedData.emergencyGoal || 25000);
+        setAccounts(storedData.accounts || []);
+        setExpenses(storedData.expenses || []);
+        setPaymentLogs(storedData.paymentLogs || []);
+        setUndoStack(storedData.undoStack || []);
+        setColorTheme(storedData.colorTheme || "system");
+        setFontSettings(storedData.fontSettings || {
+          size: 16,
+          family: 'Inter',
+          weight: 'normal',
+          color: 'white',
+          italic: false,
+        });
+        setSpendingCategories(storedData.spendingCategories || {});
+        setInsurancePolicies(storedData.insurancePolicies || []);
+      }
+      setIsLoaded(true);
+    };
+
+    loadStoredData();
+  }, [loadData]);
 
   useEffect(() => {
     if (isLoaded) {
