@@ -4,7 +4,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
@@ -21,7 +20,6 @@ import { InsuranceSection, InsurancePolicy } from "@/components/InsuranceSection
 import { ImportExportTab } from "@/components/ImportExportTab";
 import { StoragePathDisplay } from "@/components/StoragePathDisplay";
 import { DataManager } from "@/components/DataManager";
-import { useFileStorage } from "@/hooks/useFileStorage";
 
 export interface Account {
   id: string;
@@ -64,7 +62,7 @@ export interface PaymentLog {
 
 const Index = () => {
   const { toast } = useToast();
-  const { loadData, saveData, isLoaded, setIsLoaded, serverConnected } = useFileStorage('debt-tool');
+  const { loadData, saveData, isLoaded, setIsLoaded } = useLocalStorage();
   const [bankBalance, setBankBalance] = useState(50000);
   const [emergencyFund, setEmergencyFund] = useState(10000);
   const [emergencyGoal, setEmergencyGoal] = useState(25000);
@@ -106,32 +104,28 @@ const Index = () => {
   }, [fontSettings]);
 
   useEffect(() => {
-    const loadStoredData = async () => {
-      const storedData = await loadData();
-      if (storedData) {
-        setBankBalance(storedData.bankBalance || 50000);
-        setEmergencyFund(storedData.emergencyFund || 10000);
-        setEmergencyGoal(storedData.emergencyGoal || 25000);
-        setAccounts(storedData.accounts || []);
-        setExpenses(storedData.expenses || []);
-        setPaymentLogs(storedData.paymentLogs || []);
-        setUndoStack(storedData.undoStack || []);
-        setColorTheme(storedData.colorTheme || "system");
-        setFontSettings(storedData.fontSettings || {
-          size: 16,
-          family: 'Inter',
-          weight: 'normal',
-          color: 'white',
-          italic: false,
-        });
-        setSpendingCategories(storedData.spendingCategories || {});
-        setInsurancePolicies(storedData.insurancePolicies || []);
-      }
-      setIsLoaded(true);
-    };
-
-    loadStoredData();
-  }, [loadData]);
+    const storedData = loadData();
+    if (storedData) {
+      setBankBalance(storedData.bankBalance);
+      setEmergencyFund(storedData.emergencyFund);
+      setEmergencyGoal(storedData.emergencyGoal);
+      setAccounts(storedData.accounts);
+      setExpenses(storedData.expenses);
+      setPaymentLogs(storedData.paymentLogs);
+      setUndoStack(storedData.undoStack);
+      setColorTheme(storedData.colorTheme || "system");
+      setFontSettings(storedData.fontSettings || {
+        size: 16,
+        family: 'Inter',
+        weight: 'normal',
+        color: 'white',
+        italic: false,
+      });
+      setSpendingCategories(storedData.spendingCategories || {});
+      setInsurancePolicies(storedData.insurancePolicies || []);
+    }
+    setIsLoaded(true);
+  }, []);
 
   useEffect(() => {
     if (isLoaded) {
@@ -302,38 +296,11 @@ const Index = () => {
     });
   };
 
-  const handleManualSave = async () => {
-    await saveData({
-      bankBalance,
-      emergencyFund,
-      emergencyGoal,
-      accounts,
-      expenses,
-      paymentLogs,
-      undoStack,
-      colorTheme,
-      fontSettings,
-      spendingCategories,
-      insurancePolicies,
-    });
-  };
-
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
           <StoragePathDisplay />
-          
-          {/* Server Status and Manual Save */}
-          <div className="flex justify-between items-center">
-            <Badge variant={serverConnected ? "default" : "destructive"}>
-              {serverConnected ? "Server Connected" : "Server Disconnected"}
-            </Badge>
-            <Button onClick={handleManualSave} className="bg-green-600 hover:bg-green-500">
-              <Download className="h-4 w-4 mr-2" />
-              Save Data
-            </Button>
-          </div>
           
           <HeaderSection 
             undoStack={undoStack}
