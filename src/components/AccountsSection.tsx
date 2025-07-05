@@ -83,12 +83,15 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
 
   const handleFieldSave = (accountId: string, field: string) => {
     const newValue = editValues[`${accountId}-${field}`];
+    console.log('handleFieldSave called:', { accountId, field, newValue, editValues });
     if (!newValue) return;
 
     const updatedAccounts = accounts.map(acc => {
+      console.log('Processing account:', acc.id, 'Target:', accountId, 'Match:', acc.id === accountId);
       // Only update the specific account being edited
       if (acc.id === accountId) {
         let updatedAcc = { ...acc };
+        console.log('Updating account:', acc.id, 'from', acc.type, 'to', newValue);
         
         if (field === 'type') {
           // When type changes, recalculate payment labels and logic
@@ -108,12 +111,15 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
           updatedAcc[field] = parseFloat(newValue);
         }
         
+        console.log('Updated account:', updatedAcc);
         return updatedAcc;
       }
       // Return other accounts unchanged
+      console.log('Returning unchanged account:', acc.id);
       return acc;
     });
 
+    console.log('Final updated accounts:', updatedAccounts);
     onAccountsChange(updatedAccounts);
     setEditingField(null);
     toast.success("Field updated successfully!");
