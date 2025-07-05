@@ -82,46 +82,48 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   };
 
   const handleFieldSave = (accountId: string, field: string) => {
-    const newValue = editValues[`${accountId}-${field}`];
-    console.log('handleFieldSave called:', { accountId, field, newValue, editValues });
+    const fieldKey = `${accountId}-${field}`;
+    const newValue = editValues[fieldKey];
+    
     if (!newValue) return;
 
-    const updatedAccounts = accounts.map(acc => {
-      console.log('Processing account:', acc.id, 'Target:', accountId, 'Match:', acc.id === accountId);
-      // Only update the specific account being edited
-      if (acc.id === accountId) {
-        let updatedAcc = { ...acc };
-        console.log('Updating account:', acc.id, 'from', acc.type, 'to', newValue);
-        
-        if (field === 'type') {
-          // When type changes, recalculate payment labels and logic
-          updatedAcc.type = newValue as 'credit-card' | 'loan';
-          
-          // Adjust minimum payment if switching types
-          if (newValue === 'loan' && acc.type === 'credit-card') {
-            // Converting CC to loan - set a typical EMI
-            updatedAcc.minPayment = Math.max(acc.minPayment, acc.outstanding * 0.02); // 2% of outstanding as EMI
-          } else if (newValue === 'credit-card' && acc.type === 'loan') {
-            // Converting loan to CC - set minimum payment as 5% of outstanding
-            updatedAcc.minPayment = Math.max(500, acc.outstanding * 0.05);
-          }
-        } else if (field === 'name') {
-          updatedAcc[field] = newValue;
-        } else {
-          updatedAcc[field] = parseFloat(newValue);
-        }
-        
-        console.log('Updated account:', updatedAcc);
-        return updatedAcc;
+    // Create completely new accounts array with only the target account modified
+    const updatedAccounts = accounts.map(account => {
+      if (account.id !== accountId) {
+        // Return unchanged account as-is
+        return account;
       }
-      // Return other accounts unchanged
-      console.log('Returning unchanged account:', acc.id);
-      return acc;
+      
+      // Create new account object for the target account
+      const updatedAccount = { ...account };
+      
+      if (field === 'type') {
+        updatedAccount.type = newValue as 'credit-card' | 'loan';
+        
+        // Adjust minimum payment if switching types
+        if (newValue === 'loan' && account.type === 'credit-card') {
+          updatedAccount.minPayment = Math.max(account.minPayment, account.outstanding * 0.02);
+        } else if (newValue === 'credit-card' && account.type === 'loan') {
+          updatedAccount.minPayment = Math.max(500, account.outstanding * 0.05);
+        }
+      } else if (field === 'name') {
+        (updatedAccount as any)[field] = newValue;
+      } else {
+        (updatedAccount as any)[field] = parseFloat(newValue);
+      }
+      
+      return updatedAccount;
     });
 
-    console.log('Final updated accounts:', updatedAccounts);
-    onAccountsChange(updatedAccounts);
+    // Clear the edit state
     setEditingField(null);
+    setEditValues(prev => {
+      const newState = { ...prev };
+      delete newState[fieldKey];
+      return newState;
+    });
+    
+    onAccountsChange(updatedAccounts);
     toast.success("Field updated successfully!");
   };
 
