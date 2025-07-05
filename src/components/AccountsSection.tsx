@@ -385,6 +385,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   };
 
   const renderEditableField = (account: Account, field: keyof Account, displayValue: string, isNumeric = false, isSelect = false) => {
+    const fieldKey = `${account.id}-${field}`;
     const isEditing = editingField?.accountId === account.id && editingField?.field === field;
     
     if (isEditing) {
@@ -392,8 +393,12 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
         return (
           <div className="flex items-center gap-2">
             <Select 
-              value={editValues[`${account.id}-${field}`] || account.type}
-              onValueChange={(value) => setEditValues({...editValues, [`${account.id}-${field}`]: value})}
+              key={fieldKey}
+              value={editValues[fieldKey] || account[field as keyof Account]?.toString() || ''}
+              onValueChange={(value) => {
+                console.log('Select onChange:', { accountId: account.id, field, value, fieldKey });
+                setEditValues(prev => ({...prev, [fieldKey]: value}));
+              }}
             >
               <SelectTrigger className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8">
                 <SelectValue />
@@ -423,9 +428,13 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
         return (
           <div className="flex items-center gap-2">
             <Input
+              key={fieldKey}
               type={isNumeric ? "number" : "text"}
-              value={editValues[`${account.id}-${field}`] || ''}
-              onChange={(e) => setEditValues({...editValues, [`${account.id}-${field}`]: e.target.value})}
+              value={editValues[fieldKey] || ''}
+              onChange={(e) => {
+                console.log('Input onChange:', { accountId: account.id, field, value: e.target.value, fieldKey });
+                setEditValues(prev => ({...prev, [fieldKey]: e.target.value}));
+              }}
               className="bg-purple-800/50 border-purple-600 text-purple-100 text-sm h-8"
               autoFocus
             />
@@ -451,7 +460,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     return (
       <div 
         className="flex items-center gap-2 cursor-pointer hover:bg-purple-600/20 p-1 rounded group"
-        onClick={() => handleFieldEdit(account.id, field, field === 'type' ? account.type : displayValue)}
+        onClick={() => {
+          console.log('Starting edit:', { accountId: account.id, field, currentValue: account[field as keyof Account] });
+          handleFieldEdit(account.id, field, field === 'type' ? account.type : displayValue);
+        }}
       >
         <span>{displayValue}</span>
         <Edit2 className="h-3 w-3 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity" />
