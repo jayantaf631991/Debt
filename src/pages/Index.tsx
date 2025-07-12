@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Switch } from "@/components/ui/switch";
 import { Sparkles, CreditCard, PiggyBank, ListChecks, BarChart3, Lightbulb, Settings, Undo, Redo, Shield, Download, Save } from "lucide-react";
 import { HeaderSection } from "@/components/HeaderSection";
 import { QuickStatsSection } from "@/components/QuickStatsSection";
@@ -87,7 +86,6 @@ const Index = () => {
   const [spendingCategories, setSpendingCategories] = useState<{ [key: string]: number }>({});
   const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
   const [backupFolder, setBackupFolder] = useState('D:\\DebtDashboardBackups');
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
 
   // Initialize auto backup
   const { createManualBackup, getNextBackupTime } = useAutoBackup({
@@ -150,37 +148,12 @@ const Index = () => {
         setInsurancePolicies(storedData.insurancePolicies || []);
       }
       setIsLoaded(true);
-      
-      // Load auto-save preference
-      const autoSavePref = localStorage.getItem('autoSaveEnabled');
-      setAutoSaveEnabled(autoSavePref === 'true');
     };
 
     loadStoredData();
   }, []);
 
-  // FIXED Auto-save effect - now properly respects the toggle
-  useEffect(() => {
-    if (isLoaded && autoSaveEnabled) {
-      const timeoutId = setTimeout(() => {
-        saveData({
-          bankBalance,
-          emergencyFund,
-          emergencyGoal,
-          accounts,
-          expenses,
-          paymentLogs,
-          undoStack,
-          colorTheme,
-          fontSettings,
-          spendingCategories,
-          insurancePolicies,
-        });
-      }, 1000); // Debounce saves by 1 second
-
-      return () => clearTimeout(timeoutId);
-    }
-  }, [bankBalance, emergencyFund, emergencyGoal, accounts, expenses, paymentLogs, undoStack, isLoaded, colorTheme, fontSettings, spendingCategories, insurancePolicies, autoSaveEnabled]);
+  // REMOVED: Auto-save functionality completely removed
 
   const handleManualSave = () => {
     // Save to localStorage
@@ -229,33 +202,6 @@ const Index = () => {
     toast({
       title: "Data saved successfully!",
       description: "Data saved to browser and exported to file.",
-    });
-  };
-
-  const handleAutoSaveToggle = (enabled: boolean) => {
-    setAutoSaveEnabled(enabled);
-    localStorage.setItem('autoSaveEnabled', enabled.toString());
-    
-    if (enabled) {
-      // Save immediately when auto-save is enabled
-      saveData({
-        bankBalance,
-        emergencyFund,
-        emergencyGoal,
-        accounts,
-        expenses,
-        paymentLogs,
-        undoStack,
-        colorTheme,
-        fontSettings,
-        spendingCategories,
-        insurancePolicies,
-      });
-    }
-    
-    toast({
-      title: enabled ? "Auto-save enabled" : "Auto-save disabled",
-      description: enabled ? "Changes will be saved automatically." : "Use the Save button to save changes.",
     });
   };
 
@@ -562,28 +508,18 @@ const Index = () => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-green-800/30 border-green-600/30 backdrop-blur-sm">
+                <Card className="bg-blue-800/30 border-blue-600/30 backdrop-blur-sm">
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label className="text-green-200 text-lg font-semibold">Auto-Save</Label>
-                          <p className="text-green-300 text-sm mt-1">
-                            Automatically save changes as you make them
-                          </p>
-                        </div>
-                        <Switch
-                          checked={autoSaveEnabled}
-                          onCheckedChange={handleAutoSaveToggle}
-                          className="data-[state=checked]:bg-green-600"
-                        />
+                      <div>
+                        <Label className="text-blue-200 text-lg font-semibold">Manual Save Only</Label>
+                        <p className="text-blue-300 text-sm mt-1">
+                          Auto-save has been disabled. Use the "Save Data & Export" button to save your changes.
+                        </p>
                       </div>
-                      <div className="bg-green-900/50 p-3 rounded-lg">
-                        <p className="text-green-200 text-sm">
-                          {autoSaveEnabled 
-                            ? "✅ Auto-save is ON - Changes are saved automatically"
-                            : "❌ Auto-save is OFF - Use the Save button to save changes"
-                          }
+                      <div className="bg-blue-900/50 p-3 rounded-lg">
+                        <p className="text-blue-200 text-sm">
+                          💾 Manual save mode is active - Remember to save your changes regularly using the save button.
                         </p>
                       </div>
                     </div>

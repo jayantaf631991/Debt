@@ -40,10 +40,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     creditLimit: ''
   });
 
-  // Calculate available amount after all EMIs and expenses
+  // FIXED: Calculate available amount after all EMIs and expenses (only unpaid expenses)
   const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
-  const totalExpenses = expenses.reduce((sum, exp) => exp.isPaid ? sum + exp.amount : sum, 0);
-  const availableAfterObligations = bankBalance - totalMinPayments - totalExpenses;
+  const totalUnpaidExpenses = expenses.reduce((sum, exp) => exp.isPaid ? sum : sum + exp.amount, 0);
+  const availableAfterObligations = bankBalance - totalMinPayments - totalUnpaidExpenses;
 
   const handleAddAccount = () => {
     if (!newAccount.name || !newAccount.outstanding || !newAccount.minPayment) {
@@ -583,7 +583,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-green-400">₹{availableAfterObligations.toLocaleString()}</p>
-              <p className="text-green-300 text-sm">After EMIs (₹{totalMinPayments.toLocaleString()}) & Expenses (₹{totalExpenses.toLocaleString()})</p>
+              <p className="text-green-300 text-sm">After EMIs (₹{totalMinPayments.toLocaleString()}) & Unpaid Expenses (₹{totalUnpaidExpenses.toLocaleString()})</p>
             </div>
           </div>
         </div>
