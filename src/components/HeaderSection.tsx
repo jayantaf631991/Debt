@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Undo, Redo, Settings } from "lucide-react";
 import { FontControls, FontSettings } from "./FontControls";
-import { useElectronAPI } from "@/hooks/useElectronAPI";
 
 interface HeaderSectionProps {
   undoStack: any[];
@@ -68,7 +67,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
             className="bg-slate-800/80 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white"
           >
             <Undo className="h-4 w-4 mr-1" />
-            Undo
+            Undo {isElectron ? '(Ctrl+Z)' : ''}
           </Button>
           <Button
             variant="outline"
@@ -78,7 +77,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
             className="bg-slate-800/80 border-slate-600 text-slate-200 hover:bg-slate-700/80 hover:text-white"
           >
             <Redo className="h-4 w-4 mr-1" />
-            Redo
+            Redo {isElectron ? '(Ctrl+Y)' : ''}
           </Button>
         </div>
 
