@@ -43,7 +43,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
   // FIXED: Calculate available amount after all EMIs and expenses (only unpaid expenses)
   const totalMinPayments = accounts.reduce((sum, acc) => sum + acc.minPayment, 0);
   const totalUnpaidExpenses = expenses.reduce((sum, exp) => exp.isPaid ? sum : sum + exp.amount, 0);
-  const availableAfterObligations = bankBalance - totalMinPayments - totalUnpaidExpenses;
+  
+  // Available amount calculation: Bank balance minus all minimum payments and unpaid expenses
+  // This represents what's truly available for extra payments
+  const availableAfterObligations = Math.max(0, bankBalance - totalMinPayments - totalUnpaidExpenses);
 
   const handleAddAccount = () => {
     if (!newAccount.name || !newAccount.outstanding || !newAccount.minPayment) {
@@ -135,21 +138,24 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
     const account = accounts.find(acc => acc.id === accountId);
     if (!account) return;
 
-    // For minimum/EMI payments, add the custom amount to the minimum payment
+    // Calculate final payment amount
     let finalAmount = amount;
     if (type === 'custom') {
+      // For custom payments, add the custom amount to the minimum payment
       if (account.type === 'credit-card') {
-        finalAmount = account.minPayment + amount; // Add to minimum payment
+        finalAmount = account.minPayment + amount;
       } else {
-        finalAmount = account.minPayment + amount; // Add to EMI
+        finalAmount = account.minPayment + amount;
       }
     }
 
+    // Check if sufficient balance exists
     if (finalAmount > bankBalance) {
       toast.error("Insufficient bank balance!");
       return;
     }
 
+    // Update account outstanding
     const updatedAccounts = accounts.map(acc => {
       if (acc.id === accountId) {
         return {
@@ -165,8 +171,10 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
       return acc;
     });
 
+    // Update accounts state
     onAccountsChange(updatedAccounts);
 
+    // Create payment log
     const payment: PaymentLog = {
       id: Date.now().toString(),
       accountId,
@@ -178,6 +186,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
       balanceAfter: bankBalance - finalAmount
     };
 
+    // Record the payment
     onPaymentMade(payment);
     toast.success(`Payment of ₹${finalAmount.toLocaleString()} made successfully!`);
   };
@@ -583,7 +592,7 @@ export const AccountsSection: React.FC<AccountsSectionProps> = ({
             </div>
             <div className="text-right">
               <p className="text-2xl font-bold text-green-400">₹{availableAfterObligations.toLocaleString()}</p>
-              <p className="text-green-300 text-sm">After EMIs (₹{totalMinPayments.toLocaleString()}) & Unpaid Expenses (₹{totalUnpaidExpenses.toLocaleString()})</p>
+              <p className="text-green-300 text-sm">After all EMIs & minimum payments (₹{totalMinPayments.toLocaleString()}) & unpaid expenses (₹{totalUnpaidExpenses.toLocaleString()})</p>
             </div>
           </div>
         </div>

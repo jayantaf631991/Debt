@@ -89,23 +89,46 @@ const Index = () => {
   const [insurancePolicies, setInsurancePolicies] = useState<InsurancePolicy[]>([]);
   const [backupFolder, setBackupFolder] = useState('D:\\DebtDashboardBackups');
 
-  // Initialize auto backup
-  const { createManualBackup, getNextBackupTime } = useAutoBackup({
-    data: {
-      bankBalance,
-      emergencyFund,
-      emergencyGoal,
-      accounts,
-      expenses,
-      paymentLogs,
-      undoStack,
-      colorTheme,
-      fontSettings,
-      spendingCategories,
-      insurancePolicies,
-    },
-    backupFolder
-  });
+  // Manual backup only - auto backup disabled
+  const createManualBackup = (reason: string) => {
+    const exportData = {
+      version: "1.0",
+      timestamp: new Date().toISOString(),
+      backupReason: reason,
+      data: {
+        bankBalance,
+        emergencyFund,
+        emergencyGoal,
+        accounts,
+        expenses,
+        paymentLogs,
+        undoStack,
+        colorTheme,
+        fontSettings,
+        spendingCategories,
+        insurancePolicies,
+      }
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `debt-dashboard-manual-backup-${reason}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Manual backup created",
+      description: `Backup saved: ${reason}`,
+    });
+  };
+
+  const getNextBackupTime = () => {
+    return new Date(); // Dummy function since auto backup is disabled
+  };
 
   useEffect(() => {
     const storedTheme = localStorage.getItem("debtDashboardTheme") || "system";
@@ -155,7 +178,7 @@ const Index = () => {
     loadStoredData();
   }, []);
 
-  // REMOVED: Auto-save functionality completely removed
+  // Auto-save functionality completely disabled
 
   const handleManualSave = () => {
     // Save to localStorage

@@ -78,19 +78,18 @@ export const AutoBackupSettings: React.FC<AutoBackupSettingsProps> = ({
             </div>
           </div>
 
-          <div className="bg-indigo-900/50 p-4 rounded-lg border border-indigo-500/30">
+          <div className="bg-red-900/50 p-4 rounded-lg border border-red-500/30">
             <h4 className="font-semibold text-indigo-100 mb-3 flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              Backup Schedule
+              Auto Backup Status
             </h4>
-            <div className="space-y-2 text-indigo-200 text-sm">
-              <div>• Startup: When app starts</div>
-              <div>• Morning: 11:00 AM daily</div>
-              <div>• Afternoon: 4:00 PM daily</div>
-              <div>• Evening: 8:00 PM daily</div>
+            <div className="space-y-2 text-red-200 text-sm">
+              <div>• Auto backup is DISABLED</div>
+              <div>• Only manual backups are available</div>
+              <div>• Use the manual backup button below</div>
             </div>
-            <div className="mt-3 p-2 bg-indigo-800/50 rounded text-indigo-100 text-sm">
-              <strong>Next backup:</strong> {nextBackupTime.toLocaleString()}
+            <div className="mt-3 p-2 bg-red-800/50 rounded text-red-100 text-sm">
+              <strong>Status:</strong> Manual backup mode only
             </div>
           </div>
 
@@ -104,16 +103,16 @@ export const AutoBackupSettings: React.FC<AutoBackupSettingsProps> = ({
             </Button>
           </div>
 
-          <div className="bg-yellow-900/50 p-4 rounded-lg border border-yellow-500/30">
+          <div className="bg-blue-900/50 p-4 rounded-lg border border-blue-500/30">
             <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-yellow-300 mt-0.5" />
+              <Info className="h-5 w-5 text-blue-300 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-yellow-100 mb-2">Important Notes</h4>
-                <ul className="text-yellow-200 text-sm space-y-1">
+                <h4 className="font-semibold text-blue-100 mb-2">Manual Backup Info</h4>
+                <ul className="text-blue-200 text-sm space-y-1">
                   <li>• Backups will be downloaded to your Downloads folder</li>
                   <li>• The folder path is for reference only</li>
                   <li>• Move downloaded files to your preferred location</li>
-                  <li>• Keep your browser open for scheduled backups</li>
+                  <li>• Remember to create backups manually when needed</li>
                 </ul>
               </div>
             </div>
