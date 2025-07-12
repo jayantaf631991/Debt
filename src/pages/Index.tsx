@@ -364,16 +364,16 @@ const Index = () => {
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
         <div className="container mx-auto p-6 space-y-6">
-          <StoragePathDisplay />
+          {!isElectron && <StoragePathDisplay />}
           
           {/* Manual Save Button */}
           <div className="flex justify-center">
             <Button 
               onClick={handleManualSave}
-              className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white px-8 py-3 text-lg font-semibold shadow-lg"
+              className={`bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 text-white px-8 py-3 text-lg font-semibold shadow-lg ${isElectron ? 'mb-4' : ''}`}
             >
               <Save className="h-5 w-5 mr-2" />
-              Save Data & Export
+              {isElectron ? 'Save Data & Export (Ctrl+S)' : 'Save Data & Export'}
             </Button>
           </div>
 
