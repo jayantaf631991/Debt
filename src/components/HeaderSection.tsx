@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Undo, Redo, Settings } from "lucide-react";
 import { FontControls, FontSettings } from "./FontControls";
+import { useElectronAPI } from "@/hooks/useElectronAPI";
 
 interface HeaderSectionProps {
   undoStack: any[];
@@ -22,6 +23,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   onFontChange
 }) => {
   const [showFontControls, setShowFontControls] = useState(false);
+  const { isElectron } = useElectronAPI();
 
   const getFontClasses = () => {
     const weightClass = fontSettings.weight === 'normal' ? 'font-normal' : 

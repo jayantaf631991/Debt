@@ -23,6 +23,7 @@ import { DataManager } from "@/components/DataManager";
 import { useAutoBackup } from "@/hooks/useAutoBackup";
 import { AutoBackupSettings } from "@/components/AutoBackupSettings";
 import { BulkDataUpload } from "@/components/BulkDataUpload";
+import { useElectronAPI } from "@/hooks/useElectronAPI";
 
 export interface Account {
   id: string;
@@ -66,6 +67,7 @@ export interface PaymentLog {
 const Index = () => {
   const { toast } = useToast();
   const { loadData, saveData, isLoaded, setIsLoaded } = useFileStorage('debt-dashboard');
+  const { isElectron } = useElectronAPI();
   const [bankBalance, setBankBalance] = useState(50000);
   const [emergencyFund, setEmergencyFund] = useState(10000);
   const [emergencyGoal, setEmergencyGoal] = useState(25000);
